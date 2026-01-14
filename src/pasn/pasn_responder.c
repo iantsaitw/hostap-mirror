@@ -1141,12 +1141,16 @@ int handle_auth_pasn_3(struct pasn_data *pasn, const u8 *own_addr,
 	if (!copy)
 		goto fail;
 	os_memset(copy + mic_offset, 0, mic_len);
+	wpa_hexdump_key(MSG_DEBUG, "PASN: auth1", wpabuf_head(pasn->auth1), wpabuf_len(pasn->auth1));
 	if (!pasn->auth1 ||
 	    pasn_auth_frame_hash(pasn->hash_alg, wpabuf_head(pasn->auth1),
 				 wpabuf_len(pasn->auth1), hash)) {
 		wpa_printf(MSG_INFO, "PASN: Failed to calculate Auth1 hash");
 		goto fail;
 	}
+	wpa_hexdump_key(MSG_DEBUG, "PASN: hash", hash, mic_len * 2);
+	wpa_printf(MSG_DEBUG, "%s: own_addr=" MACSTR " peer_addr=" MACSTR,
+			   __func__, MAC2STR(own_addr), MAC2STR(peer_addr));
 	ret = pasn_mic(pasn->hash_alg, pasn->ptk.kck, pasn->ptk.kck_len,
 		       peer_addr, own_addr, hash, mic_len * 2,
 		       copy, copy_len, out_mic);

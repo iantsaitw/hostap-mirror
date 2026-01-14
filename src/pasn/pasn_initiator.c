@@ -606,9 +606,11 @@ struct wpabuf *wpas_pasn_build_auth_1(struct pasn_data *pasn,
 	u8 wrapped_data;
 	const u8 *data;
 	size_t data_len;
+	const u8 *ddata;
+	size_t ddata_len;
 	u8 *copy = NULL;
 
-	wpa_printf(MSG_DEBUG, "PASN: Building frame 1");
+	wpa_printf(MSG_DEBUG, "PASN: Building frame 1 (is_sme_drv=%d)", is_sme_drv);
 
 	if (pasn->trans_seq)
 		return NULL;
@@ -696,19 +698,23 @@ struct wpabuf *wpas_pasn_build_auth_1(struct pasn_data *pasn,
 	}
 #endif /* CONFIG_ENC_ASSOC */
 
+	wpa_hexdump_key(MSG_DEBUG, "PASN: buf", wpabuf_head(buf), wpabuf_len(buf));
+
 	if (!is_sme_drv) {
 		copy = pasn_prepend_auth_alg(pasn->auth_alg,
 					     wpabuf_head_u8(buf),
 					     wpabuf_len(buf));
+		wpa_hexdump_key(MSG_DEBUG, "PASN: copy", copy, wpabuf_len(buf) + 2);
 		if (!copy)
 			goto fail;
 		data = copy;
 		data_len = wpabuf_len(buf) + 2;
-		os_free(copy);
 	} else {
 		data = wpabuf_head_u8(buf) + IEEE80211_HDRLEN;
 		data_len = wpabuf_len(buf) - IEEE80211_HDRLEN;
 	}
+
+	wpa_hexdump_key(MSG_DEBUG, "PASN: data", data, data_len);
 
 	wpabuf_free(pasn->auth1);
 	pasn->auth1 = wpabuf_alloc_copy(data, data_len);
@@ -720,6 +726,7 @@ struct wpabuf *wpas_pasn_build_auth_1(struct pasn_data *pasn,
 
 	pasn->trans_seq++;
 
+	os_free(copy);
 	wpabuf_free(wrapped_data_buf);
 	wpabuf_free(pubkey);
 
@@ -748,7 +755,7 @@ struct wpabuf *wpas_pasn_build_auth_3(struct pasn_data *pasn,
 	int ret;
 	u8 hash[SHA512_MAC_LEN];
 
-	wpa_printf(MSG_DEBUG, "PASN: Building frame 3");
+	wpa_printf(MSG_DEBUG, "PASN: Building frame 3 (is_sme_drv=%d)", is_sme_drv);
 
 	if (pasn->trans_seq != WLAN_AUTH_TR_SEQ_PASN_AUTH2)
 		return NULL;
@@ -807,6 +814,8 @@ struct wpabuf *wpas_pasn_build_auth_3(struct pasn_data *pasn,
 	ptr = wpabuf_put(buf, mic_len);
 	os_memset(ptr, 0, mic_len);
 
+	wpa_printf(MSG_DEBUG, "is_sme_drv = %d", is_sme_drv);
+
 	if (!is_sme_drv) {
 		copy = pasn_prepend_auth_alg(pasn->auth_alg,
 					     wpabuf_head_u8(buf), wpabuf_len(buf));
@@ -814,12 +823,12 @@ struct wpabuf *wpas_pasn_build_auth_3(struct pasn_data *pasn,
 			goto fail;
 		data = copy;
 		data_len = wpabuf_len(buf) + 2;
-		os_free(copy);
 	} else {
 		data = wpabuf_head_u8(buf) + IEEE80211_HDRLEN;
 		data_len = wpabuf_len(buf) - IEEE80211_HDRLEN;
 	}
 
+	wpa_hexdump_key(MSG_DEBUG, "PASN: auth1", wpabuf_head(pasn->auth1), wpabuf_len(pasn->auth1));
 
 	if (!pasn->auth1 ||
 	    pasn_auth_frame_hash(pasn->hash_alg, wpabuf_head(pasn->auth1),
@@ -827,6 +836,11 @@ struct wpabuf *wpas_pasn_build_auth_3(struct pasn_data *pasn,
 		wpa_printf(MSG_INFO, "PASN: Failed to calculate Auth1 hash");
 		goto fail;
 	}
+
+	wpa_hexdump_key(MSG_DEBUG, "PASN: hash", hash, mic_len * 2);
+
+	wpa_printf(MSG_DEBUG, "%s: own_addr=" MACSTR " peer_addr=" MACSTR,
+			   __func__, MAC2STR(pasn->own_addr), MAC2STR(pasn->peer_addr));
 
 	ret = pasn_mic(pasn->hash_alg, pasn->ptk.kck, pasn->ptk.kck_len,
 		       pasn->own_addr, pasn->peer_addr,
@@ -847,6 +861,7 @@ struct wpabuf *wpas_pasn_build_auth_3(struct pasn_data *pasn,
 
 	pasn->trans_seq++;
 
+	os_free(copy);
 	wpa_printf(MSG_DEBUG, "PASN: frame 3: Success");
 	return buf;
 fail:
