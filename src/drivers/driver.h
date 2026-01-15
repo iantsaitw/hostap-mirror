@@ -2435,6 +2435,9 @@ struct wpa_driver_capa {
 #define WPA_DRIVER_FLAGS2_NON_TRIGGER_BASED_INITIATOR	0x0000000040000000ULL
 /** Driver supports (Re)Association Request/Response frame encryption */
 #define WPA_DRIVER_FLAGS2_ASSOCIATION_FRAME_ENCRYPTION	0x0000000080000000ULL
+/** Driver supports EPPKE authentication */
+#define WPA_DRIVER_FLAGS2_EPPKE				0x0000000100000000ULL
+
 
 	u64 flags2;
 
