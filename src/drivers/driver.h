@@ -2433,6 +2433,8 @@ struct wpa_driver_capa {
 #define WPA_DRIVER_FLAGS2_NON_TRIGGER_BASED_RESPONDER   0x0000000020000000ULL
 /** Driver supports non-trigger based ranging initiator functionality */
 #define WPA_DRIVER_FLAGS2_NON_TRIGGER_BASED_INITIATOR	0x0000000040000000ULL
+/** Driver supports (Re)Association Request/Response frame encryption */
+#define WPA_DRIVER_FLAGS2_ASSOCIATION_FRAME_ENCRYPTION	0x0000000080000000ULL
 
 	u64 flags2;
 
