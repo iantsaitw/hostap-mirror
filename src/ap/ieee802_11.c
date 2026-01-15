@@ -4488,7 +4488,11 @@ static int __check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 	const u8 *wpa_ie;
 	size_t wpa_ie_len;
 	const u8 *p2p_dev_addr = NULL;
+	bool epp_sta = false;
 
+#ifdef CONFIG_ENC_ASSOC
+	epp_sta = sta->epp_sta;
+#endif
 	if (type != LINK_PARSE_RECONF) {
 		resp = check_ssid(hapd, sta, elems->ssid, elems->ssid_len);
 		if (resp != WLAN_STATUS_SUCCESS)
@@ -4777,7 +4781,7 @@ static int __check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 			wpa_printf(MSG_DEBUG, "SAE: " MACSTR
 				   " using PMKSA caching", MAC2STR(sta->addr));
 			sae_assign_vlan(hapd, sta, sa->sae_vlan_id);
-		} else if (wpa_auth_uses_sae(sta->wpa_sm) &&
+		} else if (!epp_sta && wpa_auth_uses_sae(sta->wpa_sm) &&
 			   sta->auth_alg != WLAN_AUTH_SAE &&
 			   !(sta->auth_alg == WLAN_AUTH_FT &&
 			     wpa_auth_uses_ft_sae(sta->wpa_sm))) {
@@ -5359,8 +5363,12 @@ static int add_associated_sta(struct hostapd_data *hapd,
 	struct ieee80211_eht_capabilities eht_cap;
 	int set = 1;
 	const u8 *mld_link_addr = NULL;
-	bool mld_link_sta = false;
+	bool mld_link_sta = false, epp_sta = false;
 	u16 eml_cap = 0;
+
+#ifdef CONFIG_ENC_ASSOC
+	epp_sta = sta->epp_sta;
+#endif
 
 #ifdef CONFIG_IEEE80211BE
 	if (ap_sta_is_mld(hapd, sta)) {
@@ -5452,7 +5460,8 @@ static int add_associated_sta(struct hostapd_data *hapd,
 			    sta->he_6ghz_capab,
 			    sta->flags | WLAN_STA_ASSOC, sta->qosinfo,
 			    sta->vht_opmode, sta->p2p_ie ? 1 : 0,
-			    set, mld_link_addr, mld_link_sta, eml_cap)) {
+			    set, mld_link_addr, mld_link_sta, eml_cap,
+			    epp_sta)) {
 		hostapd_logger(hapd, sta->addr,
 			       HOSTAPD_MODULE_IEEE80211, HOSTAPD_LEVEL_NOTICE,
 			       "Could not %s STA to kernel driver",
