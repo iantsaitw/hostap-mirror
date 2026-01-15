@@ -675,6 +675,7 @@ static void wpas_eppke_initialize(struct wpa_supplicant *wpa_s, struct wpa_bss *
 	}
 	capab |= BIT(WLAN_RSNX_CAPAB_KEK_IN_PASN);
 	capab |= BIT(WLAN_RSNX_CAPAB_ASSOC_FRAME_ENCRYPTION);
+	capab |= BIT(WLAN_RSNX_CAPAB_PMKSA_CACHING_PRIVACY);
 
 #ifdef CONFIG_SAE
 	if (wpa_key_mgmt_sae(ssid->key_mgmt)) {
