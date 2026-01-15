@@ -5774,6 +5774,15 @@ rsnxe_done:
 			  wpabuf_len(hapd->conf->assocresp_elements));
 		p += wpabuf_len(hapd->conf->assocresp_elements);
 	}
+#ifdef CONFIG_ENC_ASSOC
+	if (sta && sta->auth_alg == WLAN_AUTH_EPPKE &&
+	    status_code == WLAN_STATUS_SUCCESS) {
+		reply->frame_control |= WLAN_FC_ISWEP;
+		p = wpa_auth_write_assoc_resp_eppke(sta->wpa_sm, p,
+						    (buf + buflen - p),
+						    ap_sta_is_mld(hapd, sta));
+	}
+#endif /* CONFIG_ENC_ASSOC */
 
 	send_len += p - reply->u.assoc_resp.variable;
 
