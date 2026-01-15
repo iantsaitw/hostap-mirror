@@ -1083,17 +1083,17 @@ atheros_sta_auth(void *priv, struct wpa_driver_sta_auth_params *params)
 		wpa_printf(MSG_DEBUG, "%s: im_op IEEE80211_MLME_AUTH_FILS",
 			   __func__);
 		os_memcpy(mlme.fils_aad.ANonce, params->fils_anonce,
-			  IEEE80211_FILS_NONCE_LEN);
+			  IEEE80211_NONCE_LEN);
 		os_memcpy(mlme.fils_aad.SNonce, params->fils_snonce,
-			  IEEE80211_FILS_NONCE_LEN);
+			  IEEE80211_NONCE_LEN);
 		os_memcpy(mlme.fils_aad.kek, params->fils_kek,
 			  IEEE80211_MAX_WPA_KEK_LEN);
 		mlme.fils_aad.kek_len = params->fils_kek_len;
 		mlme.im_op = IEEE80211_MLME_AUTH_FILS;
 		wpa_hexdump(MSG_DEBUG, "FILS: ANonce",
-			    mlme.fils_aad.ANonce, FILS_NONCE_LEN);
+			    mlme.fils_aad.ANonce, NONCE_LEN);
 		wpa_hexdump(MSG_DEBUG, "FILS: SNonce",
-			    mlme.fils_aad.SNonce, FILS_NONCE_LEN);
+			    mlme.fils_aad.SNonce, NONCE_LEN);
 		wpa_hexdump_key(MSG_DEBUG, "FILS: KEK",
 				mlme.fils_aad.kek, mlme.fils_aad.kek_len);
 	} else {
