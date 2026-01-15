@@ -2242,6 +2242,9 @@ void sme_event_auth(struct wpa_supplicant *wpa_s, union wpa_event_data *data)
 		struct pasn_data *pasn = &wpa_s->pasn;
 		struct wpa_pasn_params_data pasn_params;
 		int res;
+		enum wpa_alg alg;
+		u8 zero[WPA_TK_MAX_LEN] = {0};
+		struct ptksa_cache_entry *entry;
 
 		res = wpas_parse_pasn_frame(pasn, data->auth.auth_type,
 					    data->auth.auth_transaction,
@@ -2266,6 +2269,14 @@ void sme_event_auth(struct wpa_supplicant *wpa_s, union wpa_event_data *data)
 
 		sme_send_authentication(wpa_s, wpa_s->current_bss,
 					wpa_s->current_ssid, 0);
+
+		alg = wpa_cipher_to_alg(pasn_get_cipher(pasn));
+		entry = ptksa_cache_get(wpa_s->ptksa, pasn->peer_addr,
+					pasn_get_cipher(pasn));
+
+		wpa_drv_set_key(wpa_s, -1, alg, pasn->peer_addr, 0, 1,
+				zero, 6, entry->ptk.tk, entry->ptk.tk_len,
+				KEY_FLAG_PAIRWISE_RX_TX);
 	}
 #endif /* CONFIG_ENC_ASSOC */
 #ifdef CONFIG_SAE
