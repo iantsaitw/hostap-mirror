@@ -7076,6 +7076,16 @@ int wpa_fils_is_completed(struct wpa_sm *sm)
 }
 
 
+int wpa_eppke_is_completed(struct wpa_sm *sm)
+{
+#ifdef CONFIG_ENC_ASSOC
+	return sm && sm->eppke_completed;
+#else /* CONFIG_ENC_ASSOC */
+	return 0;
+#endif /* CONFIG_ENC_ASSOC */
+}
+
+
 #ifdef CONFIG_OWE
 
 struct wpabuf * owe_build_assoc_req(struct wpa_sm *sm, u16 group)

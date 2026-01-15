@@ -1216,6 +1216,11 @@ void wpa_supplicant_set_state(struct wpa_supplicant *wpa_s,
 				    MAC2STR(wpa_s->ap_mld_addr));
 
 #ifdef CONFIG_SME
+#ifdef CONFIG_ENC_ASSOC
+		if ((wpa_s->drv_flags & WPA_DRIVER_FLAGS_SME) &&
+		    wpa_auth_alg_eppke(wpa_s->sme.auth_alg))
+			wpa_drv_set_supp_port(wpa_s, 1);
+#endif /* CONFIG_ENC_ASSOC */
 		if ((wpa_s->drv_flags & WPA_DRIVER_FLAGS_SME) &&
 		    wpa_auth_alg_fils(wpa_s->sme.auth_alg))
 			fils_hlp_sent = 1;

@@ -4409,6 +4409,9 @@ static void wpa_supplicant_event_assoc(struct wpa_supplicant *wpa_s,
 	if (!ft_completed)
 		ft_completed = wpa_fils_is_completed(wpa_s->wpa);
 
+	if (!ft_completed)
+		ft_completed = wpa_eppke_is_completed(wpa_s->wpa);
+
 	wpa_supplicant_set_state(wpa_s, WPA_ASSOCIATED);
 	if (!ether_addr_equal(bssid, wpa_s->bssid)) {
 		if (os_reltime_initialized(&wpa_s->session_start)) {
@@ -4432,6 +4435,7 @@ static void wpa_supplicant_event_assoc(struct wpa_supplicant *wpa_s,
 		if (wpa_supplicant_dynamic_keys(wpa_s) && !ft_completed) {
 			wpa_clear_keys(wpa_s, bssid);
 		}
+
 		if (wpa_supplicant_select_config(wpa_s, data) < 0) {
 			wpa_supplicant_deauthenticate(
 				wpa_s, WLAN_REASON_DEAUTH_LEAVING);
@@ -4467,6 +4471,14 @@ static void wpa_supplicant_event_assoc(struct wpa_supplicant *wpa_s,
 #endif /* CONFIG_SME */
 
 	wpa_msg(wpa_s, MSG_INFO, "Associated with " MACSTR, MAC2STR(bssid));
+#ifdef CONFIG_SME
+#ifdef CONFIG_ENC_ASSOC
+	if (wpa_s->sme.auth_alg == WPA_AUTH_ALG_EPPKE) {
+		data->assoc_info.authorized = true;
+		wpa_supplicant_set_state(wpa_s, WPA_COMPLETED);
+	}
+#endif /* CONFIG_ENC_ASSOC */
+#endif
 	if (wpa_s->current_ssid) {
 		/* When using scanning (ap_scan=1), SIM PC/SC interface can be
 		 * initialized before association, but for other modes,
