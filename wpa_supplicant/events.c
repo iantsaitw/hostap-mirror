@@ -3660,7 +3660,39 @@ static int wpa_supplicant_event_associnfo(struct wpa_supplicant *wpa_s,
 	    !(wpa_s->drv_flags & WPA_DRIVER_FLAGS_SME))
 		wpa_sm_set_reset_fils_completed(wpa_s->wpa, 1);
 #endif /* CONFIG_FILS */
+#ifdef CONFIG_ENC_ASSOC
+#ifdef CONFIG_SME
+	if (wpa_s->sme.auth_alg == WPA_AUTH_ALG_EPPKE) {
+		struct ptksa_cache_entry *entry;
 
+		if (wpa_s->ptksa == NULL) {
+			wpa_printf(MSG_DEBUG, "EPPKE: PTKSA not cached");
+			return -1;
+		}
+
+		entry = ptksa_cache_get(wpa_s->ptksa, wpa_s->valid_links ?
+					wpa_s->ap_mld_addr : bssid,
+					wpa_s->pairwise_cipher);
+
+		wpa_sm_set_ptk_kck_kek(wpa_s->wpa, entry->ptk.kck,
+				       entry->ptk.kck_len, entry->ptk.kek,
+				       entry->ptk.kek_len);
+
+		if (!data->assoc_info.resp_ies ||
+		    eppke_process_assoc_resp(wpa_s->wpa,
+					    wpa_s->drv_flags2,
+					    wpa_s->valid_links ?
+					    wpa_s->valid_links : -1,
+					    data->assoc_info.resp_ies,
+					    data->assoc_info.resp_ies_len) <
+		    0) {
+			wpa_supplicant_deauthenticate(wpa_s,
+						      WLAN_REASON_UNSPECIFIED);
+			return -1;
+		}
+	}
+#endif /* CONFIG_SME */
+#endif /* CONFIG_ENC_ASSOC */
 #ifdef CONFIG_OWE
 	if (wpa_s->key_mgmt == WPA_KEY_MGMT_OWE &&
 	    !(wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_OWE_OFFLOAD_STA) &&
