@@ -1568,7 +1568,7 @@ static enum rsn_hash_alg pasn_select_hash_alg(int akmp, int cipher,
 
 
 /**
- * pasn_pmk_to_ptk - Calculate PASN PTK from PMK, addresses, etc.
+ * pasn_pmk_to_ptk - Calculate PASN/EPPKE PTK from PMK, addresses, etc.
  * @pmk: Pairwise master key
  * @pmk_len: Length of PMK
  * @spa: Suppplicant address
@@ -1582,13 +1582,15 @@ static enum rsn_hash_alg pasn_select_hash_alg(int akmp, int cipher,
  * @kdk_len: the length in octets that should be derived for HTLK. Can be zero.
  * @kek_len: The length in octets that should be derived for KEK. Can be zero.
  * @alg: Output variable for indicating the selected hash algorithm
+ * @is_eppke: EPPKE authentication
  * Returns: 0 on success, -1 on failure
  */
 int pasn_pmk_to_ptk(const u8 *pmk, size_t pmk_len,
 		    const u8 *spa, const u8 *bssid,
 		    const u8 *dhss, size_t dhss_len,
 		    struct wpa_ptk *ptk, int akmp, int cipher,
-		    size_t kdk_len, size_t kek_len, enum rsn_hash_alg *alg)
+		    size_t kdk_len, size_t kek_len, enum rsn_hash_alg *alg,
+		    bool is_eppke)
 {
 	u8 tmp[WPA_KCK_MAX_LEN + WPA_KEK_MAX_LEN + WPA_TK_MAX_LEN +
 	       WPA_KDK_MAX_LEN];
@@ -1596,7 +1598,8 @@ int pasn_pmk_to_ptk(const u8 *pmk, size_t pmk_len,
 	u8 *data;
 	size_t data_len, ptk_len;
 	int ret = -1;
-	const char *label = "PASN PTK Derivation";
+	const char *label = is_eppke ? "EPPKE PTK Derivation" :
+			    "PASN PTK Derivation";
 
 	if (!pmk || !pmk_len) {
 		wpa_printf(MSG_ERROR, "PASN: No PMK set for PTK derivation");
@@ -1609,6 +1612,9 @@ int pasn_pmk_to_ptk(const u8 *pmk, size_t pmk_len,
 	}
 
 	/*
+	 * Use "EPPKE PTK Derivation" instead of “PASN PTK Derivation” for
+	 * EPPKE Authentication per IEEE P802.11bi/D2.0, section 12.16.9.3.4.
+	 *
 	 * PASN-PTK = KDF(PMK, “PASN PTK Derivation”, SPA || BSSID || DHss)
 	 *
 	 * KCK = L(PASN-PTK, 0, 256)
