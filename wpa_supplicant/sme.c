@@ -715,10 +715,12 @@ static void wpas_eppke_initialize(struct wpa_supplicant *wpa_s, struct wpa_bss *
 	pasn->auth_alg = WLAN_AUTH_EPPKE;
 
 	os_memcpy(pasn->own_addr, wpa_s->own_addr, ETH_ALEN);
-	if (wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_MLO)
+	if (wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_MLO) {
+		pasn->is_ml_peer = true;
 		os_memcpy(pasn->peer_addr, wpa_s->ap_mld_addr, ETH_ALEN);
-	else
+	} else {
 		os_memcpy(pasn->peer_addr, bss->bssid, ETH_ALEN);
+	}
 	os_memcpy(pasn->bssid, bss->bssid, ETH_ALEN);
 
 	wpa_printf(MSG_DEBUG,
