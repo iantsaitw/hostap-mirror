@@ -304,7 +304,9 @@ static struct wpabuf * pasn_get_fils_wd(struct pasn_data *pasn)
 	wpabuf_put_le16(buf, WLAN_STATUS_SUCCESS);
 
 	/* Own RSNE */
-	wpa_pasn_add_rsne(buf, NULL, pasn->akmp, pasn->cipher);
+	wpa_pasn_add_rsne(buf, NULL, pasn->akmp, pasn->cipher,
+			  pasn->auth_alg == WLAN_AUTH_EPPKE,
+			  pasn->group_cipher, pasn->group_mgmt_cipher);
 
 	/* FILS Nonce */
 	wpabuf_put_u8(buf, WLAN_EID_EXTENSION);
@@ -544,8 +546,9 @@ int handle_auth_pasn_resp(struct pasn_data *pasn, const u8 *own_addr,
 #endif /* CONFIG_FILS */
 	}
 
-	if (wpa_pasn_add_rsne(buf, pmkid,
-			      pasn->akmp, pasn->cipher) < 0)
+	if (wpa_pasn_add_rsne(buf, pmkid, pasn->akmp, pasn->cipher,
+			      pasn->auth_alg == WLAN_AUTH_EPPKE,
+			      pasn->group_cipher, pasn->group_mgmt_cipher) < 0)
 		goto fail;
 
 	/* No need to derive PMK if PMKSA is given */
@@ -622,8 +625,10 @@ int handle_auth_pasn_resp(struct pasn_data *pasn, const u8 *own_addr,
 		if (!rsn_buf)
 			goto fail;
 
-		if (wpa_pasn_add_rsne(rsn_buf, pmkid,
-				      pasn->akmp, pasn->cipher) < 0)
+		if (wpa_pasn_add_rsne(rsn_buf, pmkid, pasn->akmp, pasn->cipher,
+				      pasn->auth_alg == WLAN_AUTH_EPPKE,
+				      pasn->group_cipher,
+				      pasn->group_mgmt_cipher) < 0)
 			goto fail;
 
 		rsn_ie = wpabuf_head_u8(rsn_buf);
@@ -748,7 +753,8 @@ int handle_auth_pasn_1(struct pasn_data *pasn,
 		goto send_resp;
 	}
 
-	ret = wpa_pasn_validate_rsne(&rsn_data);
+	ret = wpa_pasn_validate_rsne(&rsn_data,
+				     pasn->auth_alg == WLAN_AUTH_EPPKE);
 	if (ret) {
 		wpa_printf(MSG_DEBUG, "PASN: Failed validating RSNE");
 		status = WLAN_STATUS_INVALID_RSNIE;
@@ -776,6 +782,10 @@ int handle_auth_pasn_1(struct pasn_data *pasn,
 
 	pasn->akmp = rsn_data.key_mgmt;
 	pasn->cipher = rsn_data.pairwise_cipher;
+#ifdef CONFIG_ENC_ASSOC
+	pasn->group_cipher = rsn_data.group_cipher;
+	pasn->group_mgmt_cipher = rsn_data.mgmt_group_cipher;
+#endif /* CONFIG_ENC_ASSOC */
 
 	if (pasn->derive_kdk &&
 	    ieee802_11_rsnx_capab_len(elems.rsnxe, elems.rsnxe_len,

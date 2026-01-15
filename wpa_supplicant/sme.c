@@ -631,6 +631,7 @@ static void wpas_eppke_initialize(struct wpa_supplicant *wpa_s, struct wpa_bss *
 	u8 beacon_rsne_len, beacon_rsnxe_len;
 	u32 capab = 0;
 	int group;
+	int group_mgmt_cipher;
 
 	pasn = &wpa_s->pasn;
 
@@ -710,6 +711,12 @@ static void wpas_eppke_initialize(struct wpa_supplicant *wpa_s, struct wpa_bss *
 	}
 	pasn->akmp = wpa_s->key_mgmt;
 	pasn->cipher = wpa_pick_pairwise_cipher(ssid->pairwise_cipher, 1);
+	pasn->group_cipher = wpa_pick_group_cipher(ssid->group_cipher);
+	if (ssid->group_mgmt_cipher != 0)
+		group_mgmt_cipher = ssid->group_mgmt_cipher;
+	else
+		group_mgmt_cipher = WPA_CIPHER_AES_128_CMAC;
+	pasn->group_mgmt_cipher = wpa_pick_group_mgmt_cipher(group_mgmt_cipher);
 	pasn->group = group;
 	pasn->freq = bss->freq;
 	pasn->auth_alg = WLAN_AUTH_EPPKE;

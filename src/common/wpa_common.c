@@ -3327,6 +3327,20 @@ int wpa_pick_group_cipher(int ciphers)
 }
 
 
+int wpa_pick_group_mgmt_cipher(int ciphers)
+{
+	if (ciphers & WPA_CIPHER_AES_128_CMAC)
+		return WPA_CIPHER_AES_128_CMAC;
+	if (ciphers & WPA_CIPHER_BIP_GMAC_128)
+		return WPA_CIPHER_BIP_GMAC_128;
+	if (ciphers & WPA_CIPHER_BIP_GMAC_256)
+		return WPA_CIPHER_BIP_GMAC_256;
+	if (ciphers & WPA_CIPHER_BIP_CMAC_256)
+		return WPA_CIPHER_BIP_CMAC_256;
+	return -1;
+}
+
+
 int wpa_parse_cipher(const char *value)
 {
 	int val = 0, last;
@@ -4002,13 +4016,15 @@ void wpa_pasn_build_auth_header(struct wpabuf *buf, const u8 *bssid,
 
 
 /*
- * wpa_pasn_add_rsne - Add an RSNE for PASN authentication
+ * wpa_pasn_add_rsne - Add an RSNE for PASN/EPPKE authentication
  * @buf: Buffer in which the IE will be added
  * @pmkid: Optional PMKID. Can be NULL.
  * @akmp: Authentication and key management protocol
  * @cipher: The cipher suite
+ * @is_eppke: EPPKE Authentication
  */
-int wpa_pasn_add_rsne(struct wpabuf *buf, const u8 *pmkid, int akmp, int cipher)
+int wpa_pasn_add_rsne(struct wpabuf *buf, const u8 *pmkid, int akmp, int cipher,
+		      bool is_eppke, int group_cipher, int group_mgmt_cipher)
 {
 	struct rsn_ie_hdr *hdr;
 	u32 suite;
@@ -4030,8 +4046,13 @@ int wpa_pasn_add_rsne(struct wpabuf *buf, const u8 *pmkid, int akmp, int cipher)
 	WPA_PUT_LE16(hdr->version, RSN_VERSION);
 	pos = (u8 *) (hdr + 1);
 
-	/* Group addressed data is not allowed */
-	RSN_SELECTOR_PUT(pos, RSN_CIPHER_SUITE_NO_GROUP_ADDRESSED);
+	if (is_eppke) {
+		/* EPPKE: Group addressed data is allowed */
+		RSN_SELECTOR_PUT(pos, wpa_cipher_to_suite(WPA_PROTO_RSN, group_cipher));
+	} else {
+		/* PASN: Group addressed data is not allowed */
+		RSN_SELECTOR_PUT(pos, RSN_CIPHER_SUITE_NO_GROUP_ADDRESSED);
+	}
 	pos += RSN_SELECTOR_LEN;
 
 	/* Add the pairwise cipher */
@@ -4082,8 +4103,13 @@ int wpa_pasn_add_rsne(struct wpabuf *buf, const u8 *pmkid, int akmp, int cipher)
 	}
 	pos += RSN_SELECTOR_LEN;
 
-	/* RSN Capabilities: PASN mandates both MFP capable and required */
-	capab = WPA_CAPABILITY_MFPC | WPA_CAPABILITY_MFPR;
+	if (is_eppke) {
+		/* RSN Capabilities: EPPKE does not mandate setting MFPR to 1 */
+		capab = WPA_CAPABILITY_MFPC;
+	} else {
+		/* RSN Capabilities: PASN mandates both MFP capable and required */
+		capab = WPA_CAPABILITY_MFPC | WPA_CAPABILITY_MFPR;
+	}
 	WPA_PUT_LE16(pos, capab);
 	pos += 2;
 
@@ -4099,9 +4125,13 @@ int wpa_pasn_add_rsne(struct wpabuf *buf, const u8 *pmkid, int akmp, int cipher)
 		pos += 2;
 	}
 
-	/* Group addressed management is not allowed */
-	RSN_SELECTOR_PUT(pos, RSN_CIPHER_SUITE_NO_GROUP_ADDRESSED);
-
+	if (is_eppke) {
+		/* EPPKE: Group addressed management is allowed */
+		RSN_SELECTOR_PUT(pos, wpa_cipher_to_suite(WPA_PROTO_RSN, group_mgmt_cipher));
+	} else {
+		/* PASN: Group addressed management is not allowed */
+		RSN_SELECTOR_PUT(pos, RSN_CIPHER_SUITE_NO_GROUP_ADDRESSED);
+	}
 	return 0;
 }
 
@@ -4239,23 +4269,29 @@ int wpa_pasn_add_wrapped_data(struct wpabuf *buf,
 
 
 /*
- * wpa_pasn_validate_rsne - Validate PSAN specific data of RSNE
+ * wpa_pasn_validate_rsne - Validate PASN/EPPKE specific data of RSNE
  * @data: Parsed representation of an RSNE
+ * @is_eppke: EPPKE Authentication
  * Returns -1 for invalid data; otherwise 0
  */
-int wpa_pasn_validate_rsne(const struct wpa_ie_data *data)
+int wpa_pasn_validate_rsne(const struct wpa_ie_data *data, bool is_eppke)
 {
-	u16 capab = WPA_CAPABILITY_MFPC | WPA_CAPABILITY_MFPR;
+	u16 capab = WPA_CAPABILITY_MFPC;
+
+	if (!is_eppke)
+		capab |= WPA_CAPABILITY_MFPR;
 
 	if (data->proto != WPA_PROTO_RSN)
 		return -1;
 
 	if ((data->capabilities & capab) != capab) {
-		wpa_printf(MSG_DEBUG, "PASN: Invalid RSNE capabilities");
+		wpa_printf(MSG_DEBUG, "%s: Invalid RSNE capabilities",
+			   is_eppke ? "EPPKE" : "PASN");
 		return -1;
 	}
 
-	if (!data->has_group || data->group_cipher != WPA_CIPHER_GTK_NOT_USED) {
+	if (!data->has_group ||
+	    (!is_eppke && data->group_cipher != WPA_CIPHER_GTK_NOT_USED)) {
 		wpa_printf(MSG_DEBUG, "PASN: Invalid group data cipher");
 		return -1;
 	}
@@ -4286,12 +4322,12 @@ int wpa_pasn_validate_rsne(const struct wpa_ie_data *data)
 	case WPA_KEY_MGMT_PASN:
 		break;
 	default:
-		wpa_printf(MSG_ERROR, "PASN: invalid key_mgmt: 0x%0x",
-			   data->key_mgmt);
+		wpa_printf(MSG_ERROR, "%s: invalid key_mgmt: 0x%0x",
+			   is_eppke ? "EPPKE" : "PASN", data->key_mgmt);
 		return -1;
 	}
 
-	if (data->mgmt_group_cipher != WPA_CIPHER_GTK_NOT_USED) {
+	if (!is_eppke && (data->mgmt_group_cipher != WPA_CIPHER_GTK_NOT_USED)) {
 		wpa_printf(MSG_DEBUG, "PASN: Invalid group mgmt cipher");
 		return -1;
 	}
