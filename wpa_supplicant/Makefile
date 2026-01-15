@@ -444,6 +444,11 @@ OBJS += ../src/pasn/pasn_common.o
 OBJS += pasn_supplicant.o
 endif
 
+ifdef CONFIG_ENC_ASSOC
+CONFIG_PASN=y
+CFLAGS += -DCONFIG_ENC_ASSOC
+endif
+
 ifdef CONFIG_HS20
 OBJS += hs20_supplicant.o
 CFLAGS += -DCONFIG_HS20
