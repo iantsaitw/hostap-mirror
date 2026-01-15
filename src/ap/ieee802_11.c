@@ -7314,7 +7314,8 @@ static void handle_assoc_cb(struct hostapd_data *hapd,
 	    sta->auth_alg == WLAN_AUTH_FILS_SK ||
 	    sta->auth_alg == WLAN_AUTH_FILS_SK_PFS ||
 	    sta->auth_alg == WLAN_AUTH_FILS_PK ||
-	    sta->auth_alg == WLAN_AUTH_FT) {
+	    sta->auth_alg == WLAN_AUTH_FT ||
+	    sta->auth_alg == WLAN_AUTH_EPPKE) {
 		/*
 		 * Open, static WEP, FT protocol, or FILS; no separate
 		 * authorization step.
