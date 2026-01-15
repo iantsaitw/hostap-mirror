@@ -1571,8 +1571,12 @@ static enum rsn_hash_alg pasn_select_hash_alg(int akmp, int cipher,
  * pasn_pmk_to_ptk - Calculate PASN/EPPKE PTK from PMK, addresses, etc.
  * @pmk: Pairwise master key
  * @pmk_len: Length of PMK
- * @spa: Suppplicant address
- * @bssid: AP BSSID
+ * @spa: As per IEEE802.11bi/D2.0, 12.16.9.3.4, for EPPKE authentication,
+ *	Non-AP MLD MAC address is used for MLO. For PASN authentication or
+ *	EPPKE authentication for Non-MLO, Non-AP Link MAC address is used.
+ * @bssid: As per IEEE802.11bi/D2.0, 12.16.9.3.4, for EPPKE authentication,
+ *	AP MLD MAC address is used for MLO. For PASN authentication or EPPKE
+ *	authentication for Non-MLO, AP BSSID is used.
  * @dhss: Is the shared secret (DHss) derived from the PASN ephemeral key
  *	exchange encoded as an octet string
  * @dhss_len: The length of dhss in octets
@@ -1799,10 +1803,15 @@ int wpa_ltf_keyseed(struct wpa_ptk *ptk, int akmp, int cipher)
  * @alg: Selected hash algorithm from pasn_pmk_to_ptk()
  * @kck: The key confirmation key for the PASN PTKSA
  * @kck_len: KCK length in octets
- * @addr1: For the 2nd PASN frame supplicant address; for the 3rd frame the
- *	BSSID
- * @addr2: For the 2nd PASN frame the BSSID; for the 3rd frame the supplicant
- *	address
+ * @addr1: For the 2nd PASN/EPPKE frame supplicant address is used for Non-MLO;
+ *	for MLO, 2nd EPPKE authentication to use Non-AP MLD MAC address.
+ *	For the 3rd PASN/EPPKE frame BSSID is used for Non-MLO. for MLO, 3rd EPPKE
+ *	authentication to use AP MLD MAC address as per IEEE802.11bi/D2.0, 12.16.9.3.4
+ * @addr2: For the 2nd PASN/EPPKE frame BSSID is used for Non-MLO;
+ *	for MLO, 2nd EPPKE authentication to use AP MLD MAC address.
+ *	For the 3rd PASN/EPPKE frame supplicant address is used for Non-MLO.
+ *	for MLO, 3rd EPPKE authentication frame to use Non-AP MLD MAC address as
+ *	per IEEE802.11bi/D2.0, 12.16.9.3.4
  * @data: For calculating the MIC for the 2nd PASN frame, this should hold the
  *	Beacon frame RSNE + RSNXE. For calculating the MIC for the 3rd PASN
  *	frame, this should hold the hash of the body of the PASN 1st frame.

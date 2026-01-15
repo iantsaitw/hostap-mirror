@@ -2993,12 +2993,29 @@ static int hapd_pasn_send_mlme(void *ctx, const u8 *data, size_t data_len,
 }
 
 
+#ifdef CONFIG_ENC_ASSOC
+static int eppk_set_key(void *ctx, enum wpa_alg alg,
+			const u8 *addr, const u8 *key,
+			size_t key_len)
+{
+	struct hostapd_data *hapd = ctx;
+
+	return hostapd_drv_set_key(hapd->conf->iface, hapd, alg, addr,
+				   0, 0, 1, NULL, 0, key, key_len,
+				   KEY_FLAG_PAIRWISE_RX_TX);
+}
+#else
+#define eppk_set_key NULL
+#endif /* CONFIG_ENC_ASSOC */
+
+
 static void hapd_initialize_pasn(struct hostapd_data *hapd,
 				 struct sta_info *sta)
 {
 	struct pasn_data *pasn = sta->pasn;
 
-	pasn_register_callbacks(pasn, hapd, hapd_pasn_send_mlme, NULL);
+	pasn_register_callbacks(pasn, hapd, hapd_pasn_send_mlme,
+				NULL, eppk_set_key);
 	pasn_set_bssid(pasn, hapd->own_addr);
 	pasn_set_own_addr(pasn, hapd->own_addr);
 #if defined(CONFIG_IEEE80211BE) && defined(CONFIG_ENC_ASSOC)
@@ -3026,6 +3043,7 @@ static void hapd_initialize_pasn(struct hostapd_data *hapd,
 	pasn_set_rsnxe_ie(pasn, hostapd_wpa_ie(hapd, WLAN_EID_RSNX));
 	pasn->disable_pmksa_caching = hapd->conf->disable_pmksa_caching;
 #ifdef CONFIG_ENC_ASSOC
+	pasn->tk_configured = false;
 	pasn_set_responder_pmksa(pasn,
 				 wpa_auth_get_pmksa_cache(hapd->wpa_auth,
 							  (sta->epp_sta ?
@@ -3111,6 +3129,7 @@ static void hapd_pasn_update_params(struct hostapd_data *hapd,
 	}
 #ifdef CONFIG_ENC_ASSOC
 	pasn->auth_alg = mgmt->u.auth.auth_alg;
+	pasn->authorized = ap_sta_is_authorized(sta);
 #ifdef CONFIG_IEEE80211BE
 	pasn->is_ml_peer = sta->mld_info.mld_sta;
 #endif
@@ -3219,7 +3238,8 @@ static void handle_auth_pasn(struct hostapd_data *hapd, struct sta_info *sta,
 			return;
 		}
 
-		sta->pasn = pasn_data_init();
+		if (!sta->pasn)
+			sta->pasn = pasn_data_init();
 		if (!sta->pasn) {
 			wpa_printf(MSG_DEBUG,
 				   "PASN: Failed to allocate PASN context");
@@ -3266,7 +3286,13 @@ static void handle_auth_pasn(struct hostapd_data *hapd, struct sta_info *sta,
 					pasn_get_ptk(sta->pasn), NULL, NULL,
 					pasn_get_akmp(sta->pasn));
 #ifdef CONFIG_ENC_ASSOC
-			if (!sta->epp_sta)
+			if (sta->epp_sta && !sta->pasn->tk_configured)
+				sta->pasn->eppk_set_key(sta->pasn->cb_ctx,
+							wpa_cipher_to_alg(sta->pasn->cipher),
+							sta->addr,
+							sta->pasn->ptk.tk,
+							sta->pasn->ptk.tk_len);
+			else if (!sta->epp_sta)
 #endif /* CONFIG_ENC_ASSOC */
 				pasn_set_keys_from_cache(hapd, hapd->own_addr,
 							 sta->addr,
