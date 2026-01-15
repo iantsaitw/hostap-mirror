@@ -99,7 +99,9 @@ struct sta_info {
 	u8 supported_rates[WLAN_SUPP_RATES_MAX];
 	int supported_rates_len;
 	u8 qosinfo; /* Valid when WLAN_STA_WMM is set */
-
+#ifdef CONFIG_ENC_ASSOC
+	bool epp_sta; /* Indicates if the station is an EPP peer */
+#endif /* CONFIG_ENC_ASSOC */
 #ifdef CONFIG_MESH
 	enum mesh_plink_state plink_state;
 	u16 peer_lid;

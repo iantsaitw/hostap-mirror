@@ -418,3 +418,6 @@ CONFIG_DPP2=y
 
 # Wi-Fi Aware unsynchronized service discovery (NAN USD)
 #CONFIG_NAN_USD=y
+
+# Feature support based on IEEE P802.11bi/D2.0
+#CONFIG_ENC_ASSOC=y
