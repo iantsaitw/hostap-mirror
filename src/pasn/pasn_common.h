@@ -183,6 +183,10 @@ int wpas_pasn_start(struct pasn_data *pasn, const u8 *own_addr,
 		    int freq, const u8 *beacon_rsne, u8 beacon_rsne_len,
 		    const u8 *beacon_rsnxe, u8 beacon_rsnxe_len,
 		    const struct wpabuf *comeback);
+struct wpabuf *wpas_pasn_build_auth_1(struct pasn_data *pasn,
+				       const struct wpabuf *comeback,
+				       bool verify, bool is_sme_drv);
+struct wpabuf *wpas_pasn_build_auth_3(struct pasn_data *pasn, bool is_sme_drv);
 int wpa_pasn_verify(struct pasn_data *pasn, const u8 *own_addr,
 		    const u8 *peer_addr, const u8 *bssid,
 		    int akmp, int cipher, u16 group,
@@ -193,6 +197,10 @@ int wpa_pasn_auth_rx(struct pasn_data *pasn, const u8 *data, size_t len,
 		     struct wpa_pasn_params_data *pasn_params);
 int wpa_pasn_auth_tx_status(struct pasn_data *pasn,
 			    const u8 *data, size_t data_len, u8 acked);
+int wpas_parse_pasn_frame(struct pasn_data *pasn, u16 auth_type, u16 auth_transaction,
+			  u16 status_code, const u8 *frame_data, size_t frame_data_len,
+			  struct wpa_pasn_params_data *pasn_params);
+
 
 /* Responder */
 int handle_auth_pasn_1(struct pasn_data *pasn,
