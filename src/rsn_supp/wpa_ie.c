@@ -329,6 +329,10 @@ int wpa_gen_rsnxe(struct wpa_sm *sm, u8 *rsnxe, size_t rsnxe_len)
 	if (sm->sae_pw_id_change)
 		capab |= BIT_ULL(WLAN_RSNX_CAPAB_SAE_PW_ID_CHANGE);
 
+	capab |= BIT(WLAN_RSNX_CAPAB_KEK_IN_PASN);
+	capab |= BIT(WLAN_RSNX_CAPAB_ASSOC_FRAME_ENCRYPTION);
+	capab |= BIT(WLAN_RSNX_CAPAB_PMKSA_CACHING_PRIVACY);
+
 	if (!capab)
 		return 0; /* no supported extended RSN capabilities */
 	tmp = capab;

@@ -1841,6 +1841,8 @@ int wpa_supplicant_set_suites(struct wpa_supplicant *wpa_s,
 	bool wmm;
 	struct rsn_pmksa_cache_entry *pmksa;
 
+	wpa_msg(wpa_s, MSG_WARNING, "[rtk_dbg] %s", __func__);
+
 	if (bss) {
 		bss_wpa = wpa_bss_get_vendor_ie(bss, WPA_IE_VENDOR_TYPE);
 		bss_rsn = wpa_bss_get_rsne(wpa_s, bss, ssid, false);
@@ -2303,6 +2305,8 @@ int wpa_supplicant_set_suites(struct wpa_supplicant *wpa_s,
 						   WPA_CIPHER_CCMP |
 						   WPA_CIPHER_GCMP) &&
 			 (wpa_s->wpa_proto & WPA_PROTO_RSN));
+
+	wpa_msg(wpa_s, MSG_WARNING, "[rtk_dbg] %s: ssid->sae_password_id %s, ssid->sae_password_id_change %d", __func__, ssid->sae_password_id, ssid->sae_password_id_change);
 
 	wpa_sm_set_param(wpa_s->wpa, WPA_PARAM_SAE_PW_ID_CHANGE,
 			 ssid->sae_password_id && ssid->sae_password_id_change);

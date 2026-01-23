@@ -723,12 +723,9 @@ static void wpas_eppke_initialize(struct wpa_supplicant *wpa_s, struct wpa_bss *
 	pasn->auth_alg = WLAN_AUTH_EPPKE;
 
 	os_memcpy(pasn->own_addr, wpa_s->own_addr, ETH_ALEN);
-	if (wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_MLO) {
-		pasn->is_ml_peer = true;
-		os_memcpy(pasn->peer_addr, wpa_s->ap_mld_addr, ETH_ALEN);
-	} else {
-		os_memcpy(pasn->peer_addr, bss->bssid, ETH_ALEN);
-	}
+
+	os_memcpy(pasn->peer_addr, bss->bssid, ETH_ALEN);
+
 	os_memcpy(pasn->bssid, bss->bssid, ETH_ALEN);
 
 	wpa_printf(MSG_DEBUG,
@@ -2275,6 +2272,9 @@ void sme_event_auth(struct wpa_supplicant *wpa_s, union wpa_event_data *data)
 		if (pasn->pmksa_entry)
 			wpa_sm_set_cur_pmksa(wpa_s->wpa, pasn->pmksa_entry);
 
+		wpa_hexdump(MSG_DEBUG, "[rtk_dbg] sme_event_auth: pmksa_entry",
+		    wpa_s->pasn.pmksa_entry->pmkid, PMKID_LEN);
+
 		sme_send_authentication(wpa_s, wpa_s->current_bss,
 					wpa_s->current_ssid, 0);
 
@@ -2510,6 +2510,25 @@ void sme_associate(struct wpa_supplicant *wpa_s, enum wpas_mode mode,
 #endif /* CONFIG_VHT_OVERRIDES */
 
 	os_memset(&params, 0, sizeof(params));
+
+	wpa_printf(MSG_ERROR, "[rtk_dbg] %s", __func__);
+
+	if (wpa_s->pasn.pmksa_entry) {
+		wpa_hexdump(MSG_DEBUG, "[rtk_dbg] sme_associate: pmksa_entry",
+		    wpa_s->pasn.pmksa_entry->pmkid, PMKID_LEN);
+		if (wpa_s->sme.assoc_req_ie_len + 2 + PMKID_LEN >
+			sizeof(wpa_s->sme.assoc_req_ie)) {
+			wpa_msg(wpa_s, MSG_WARNING,
+				"[rtk_dbg] RSN: Not enough room for inserting own PMKID into RSNE");
+		}
+		wpa_insert_pmkid(wpa_s->sme.assoc_req_ie,
+					&wpa_s->sme.assoc_req_ie_len,
+					wpa_s->pasn.pmksa_entry->pmkid, true);
+		wpa_hexdump(MSG_DEBUG,
+				"[rtk_dbg] SME: Updated Association Request IEs",
+				wpa_s->sme.assoc_req_ie,
+				wpa_s->sme.assoc_req_ie_len);
+	}
 
 	/* Save auth type, in case we need to retry after comeback timer. */
 	wpa_s->sme.assoc_auth_type = auth_type;
@@ -2906,7 +2925,7 @@ mscs_fail:
 	if (wpa_s->sme.prev_bssid_set)
 		params.prev_bssid = wpa_s->sme.prev_bssid;
 
-	wpa_msg(wpa_s, MSG_INFO, "Trying to associate with " MACSTR
+	wpa_msg(wpa_s, MSG_INFO, "[rtk_dbg] Trying to associate with " MACSTR
 		" (SSID='%s' freq=%d MHz)", MAC2STR(params.bssid),
 		params.ssid ? wpa_ssid_txt(params.ssid, params.ssid_len) : "",
 		params.freq.freq);
