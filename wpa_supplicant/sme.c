@@ -589,6 +589,8 @@ static void sme_add_assoc_req_ie(struct wpa_supplicant *wpa_s,
 	if (!buf)
 		return;
 
+	wpa_printf(MSG_ERROR, "[rtk_dbg] %s", __func__);
+
 	pos = wpa_s->sme.assoc_req_ie + wpa_s->sme.assoc_req_ie_len;
 	end = wpa_s->sme.assoc_req_ie + sizeof(wpa_s->sme.assoc_req_ie);
 	if (pos >= end)
@@ -724,6 +726,17 @@ static void wpas_eppke_initialize(struct wpa_supplicant *wpa_s, struct wpa_bss *
 
 	os_memcpy(pasn->own_addr, wpa_s->own_addr, ETH_ALEN);
 
+	wpa_printf(MSG_DEBUG, "[rtk_dbg] wpa_s->drv_flags2 = 0x%08lx", wpa_s->drv_flags2);
+	if (wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_MLO) {
+		pasn->is_ml_peer = true;
+		wpa_printf(MSG_DEBUG, "PASN: Use MLD address for peer");
+		os_memcpy(pasn->peer_addr, wpa_s->ap_mld_addr, ETH_ALEN);
+	} else {
+		wpa_printf(MSG_DEBUG, "PASN: Use BSSID for peer address");
+		os_memcpy(pasn->peer_addr, bss->bssid, ETH_ALEN);
+	}
+
+	/* workaround: always use bss->bssid before solving mlo issue */
 	os_memcpy(pasn->peer_addr, bss->bssid, ETH_ALEN);
 
 	os_memcpy(pasn->bssid, bss->bssid, ETH_ALEN);
@@ -2212,6 +2225,8 @@ void sme_event_auth(struct wpa_supplicant *wpa_s, union wpa_event_data *data)
 	struct wpa_ssid *ssid = wpa_s->current_ssid;
 	int ie_offset = 0;
 
+	wpa_printf(MSG_ERROR, "[rtk_dbg] %s", __func__);
+
 	if (ssid == NULL) {
 		wpa_dbg(wpa_s, MSG_DEBUG, "SME: Ignore authentication event "
 			"when network is not selected");
@@ -2274,6 +2289,19 @@ void sme_event_auth(struct wpa_supplicant *wpa_s, union wpa_event_data *data)
 
 		wpa_hexdump(MSG_DEBUG, "[rtk_dbg] sme_event_auth: pmksa_entry",
 		    wpa_s->pasn.pmksa_entry->pmkid, PMKID_LEN);
+
+		if (wpa_s->sme.assoc_req_ie_len + 2 + PMKID_LEN >
+			sizeof(wpa_s->sme.assoc_req_ie)) {
+			wpa_msg(wpa_s, MSG_WARNING,
+				"[rtk_dbg] RSN: Not enough room for inserting own PMKID into RSNE");
+		}
+		wpa_insert_pmkid(wpa_s->sme.assoc_req_ie,
+					&wpa_s->sme.assoc_req_ie_len,
+					wpa_s->pasn.pmksa_entry->pmkid, true);
+		wpa_hexdump(MSG_DEBUG,
+				"[rtk_dbg] SME: Updated Association Request IEs",
+				wpa_s->sme.assoc_req_ie,
+				wpa_s->sme.assoc_req_ie_len);
 
 		sme_send_authentication(wpa_s, wpa_s->current_bss,
 					wpa_s->current_ssid, 0);
@@ -2516,6 +2544,7 @@ void sme_associate(struct wpa_supplicant *wpa_s, enum wpas_mode mode,
 	if (wpa_s->pasn.pmksa_entry) {
 		wpa_hexdump(MSG_DEBUG, "[rtk_dbg] sme_associate: pmksa_entry",
 		    wpa_s->pasn.pmksa_entry->pmkid, PMKID_LEN);
+	#if 0
 		if (wpa_s->sme.assoc_req_ie_len + 2 + PMKID_LEN >
 			sizeof(wpa_s->sme.assoc_req_ie)) {
 			wpa_msg(wpa_s, MSG_WARNING,
@@ -2528,6 +2557,7 @@ void sme_associate(struct wpa_supplicant *wpa_s, enum wpas_mode mode,
 				"[rtk_dbg] SME: Updated Association Request IEs",
 				wpa_s->sme.assoc_req_ie,
 				wpa_s->sme.assoc_req_ie_len);
+	#endif
 	}
 
 	/* Save auth type, in case we need to retry after comeback timer. */

@@ -7867,6 +7867,7 @@ static int wpa_supplicant_init_iface(struct wpa_supplicant *wpa_s,
 		wpa_s->drv_capa_known = 1;
 		wpa_s->drv_flags = capa.flags;
 		wpa_s->drv_flags2 = capa.flags2;
+		wpa_printf(MSG_DEBUG, "[rtk_dbg] Driver flags: 0x%08lx 0x%08lx", capa.flags, capa.flags2);
 		wpa_s->drv_enc = capa.enc;
 		wpa_s->drv_key_mgmt = capa.key_mgmt;
 		wpa_s->drv_rrm_flags = capa.rrm_flags;

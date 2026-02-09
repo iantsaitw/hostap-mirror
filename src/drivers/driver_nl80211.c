@@ -7963,6 +7963,8 @@ static int wpa_driver_nl80211_get_capa(void *priv,
 	struct i802_bss *bss = priv;
 	struct wpa_driver_nl80211_data *drv = bss->drv;
 
+	wpa_printf(MSG_DEBUG, "[rtk_dbg] nl80211: Get driver capabilities");
+
 	if (!drv->has_capability)
 		return -1;
 	os_memcpy(capa, &drv->capa, sizeof(*capa));

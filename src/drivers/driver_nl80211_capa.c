@@ -728,8 +728,15 @@ static void wiphy_info_ext_feature_flags(struct wiphy_info_data *info,
 		capa->flags2 |= WPA_DRIVER_FLAGS2_ASSOCIATION_FRAME_ENCRYPTION;
 
 	if (ext_feature_isset(ext_features, len, NL80211_EXT_FEATURE_EPPKE)) {
+		wpa_printf(MSG_ERROR,
+			   "[rtk_dbg] nl80211: EPPKE (Enhanced Protected Probe "
+			   "Request/Response Frames) supported");
 		capa->flags2 |= WPA_DRIVER_FLAGS2_EPPKE;
 		capa->flags2 |= WPA_DRIVER_FLAGS2_ASSOCIATION_FRAME_ENCRYPTION;
+	} else {
+		wpa_printf(MSG_ERROR,
+			   "[rtk_dbg] nl80211: EPPKE (Enhanced Protected Probe "
+			   "Request/Response Frames) NOT supported");
 	}
 }
 
@@ -1214,6 +1221,8 @@ static int wpa_driver_nl80211_get_info(struct wpa_driver_nl80211_data *drv,
 	u32 feat;
 	struct nl_msg *msg;
 	int flags = 0;
+
+	wpa_printf(MSG_ERROR, "[rtk_dbg] %s", __func__);
 
 	os_memset(info, 0, sizeof(*info));
 	info->capa = &drv->capa;

@@ -4387,6 +4387,8 @@ static void wpa_supplicant_event_assoc(struct wpa_supplicant *wpa_s,
 	struct wpa_bss *bss;
 #endif /* CONFIG_FILS || CONFIG_MBO */
 
+	wpa_printf(MSG_ERROR, "[rtk_dbg] %s", __func__);
+
 #ifdef CONFIG_AP
 	if (wpa_s->ap_iface) {
 		if (!data)
