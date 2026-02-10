@@ -1027,6 +1027,20 @@ static int wpas_eppke_initialize(struct wpa_supplicant *wpa_s,
 	if (ssid->pmksa_privacy)
 		capab |= BIT(WLAN_RSNX_CAPAB_PMKSA_CACHING_PRIVACY);
 #endif /* CONFIG_PMKSA_PRIVACY */
+
+	wpa_printf(MSG_DEBUG, "PASN: pmkid_rnd_initial %u", ssid->pmkid_rnd_initial);
+
+
+	pasn->pmkid_rnd_initial_en = (ssid->pmkid_rnd_initial) ? true: false;
+
+	if (pasn->pmkid_rnd_initial_en) {
+		u8 pmkid[PMKID_LEN];
+
+		os_get_random(pmkid, PMKID_LEN);
+
+		pasn_set_rnd_pmkid(pasn, pmkid);
+	}
+
 	pasn->derive_kek = true;
 
 	if (0) {
@@ -1190,6 +1204,8 @@ static void sme_send_authentication(struct wpa_supplicant *wpa_s,
 #endif /* CONFIG_MBO */
 	int omit_rsnxe = 0;
 	unsigned int keys_to_clear = 0;
+
+	wpa_dbg(wpa_s, MSG_DEBUG, "[rtk_dbg] %s", __func__);
 
 	if (bss == NULL) {
 		wpa_msg(wpa_s, MSG_ERROR, "SME: No scan result available for "
@@ -1501,8 +1517,8 @@ skip_setup:
 		const u8 *rsn = wpa_bss_get_rsne(wpa_s, bss, ssid, false);
 		struct wpa_ie_data _ie;
 		if (rsn && wpa_parse_wpa_ie(rsn, 2 + rsn[1], &_ie) == 0 &&
-		    _ie.capabilities &
-		    (WPA_CAPABILITY_MFPC | WPA_CAPABILITY_MFPR)) {
+		_ie.capabilities &
+		(WPA_CAPABILITY_MFPC | WPA_CAPABILITY_MFPR)) {
 			wpa_dbg(wpa_s, MSG_DEBUG, "SME: Selected AP supports "
 				"MFP: require MFP");
 			wpa_s->sme.mfp = MGMT_FRAME_PROTECTION_REQUIRED;
@@ -3348,6 +3364,8 @@ void sme_event_auth(struct wpa_supplicant *wpa_s, union wpa_event_data *data)
 	struct wpa_ssid *ssid = wpa_s->current_ssid;
 	int ie_offset = 0;
 
+	wpa_dbg(wpa_s, MSG_DEBUG, "[rtk_dbg] %s", __func__);
+
 	if (ssid == NULL) {
 		wpa_dbg(wpa_s, MSG_DEBUG, "SME: Ignore authentication event "
 			"when network is not selected");
@@ -3509,6 +3527,18 @@ void sme_event_auth(struct wpa_supplicant *wpa_s, union wpa_event_data *data)
 				   "EPPKE: No PTKSA found to configure TK");
 			return;
 		}
+
+		wpa_dbg(wpa_s, MSG_DEBUG, "[rtk_dbg] %s: wpa_drv_set_key", __func__);
+
+#ifdef CONFIG_TESTING_OPTIONS
+		if (!is_broadcast_ether_addr(pasn->peer_addr)) {
+			wpa_s->last_tk_alg = alg;
+			os_memcpy(wpa_s->last_tk_addr, pasn->peer_addr, ETH_ALEN);
+			wpa_s->last_tk_key_idx = 0;
+			os_memcpy(wpa_s->last_tk, entry->ptk.tk, entry->ptk.tk_len);
+			wpa_s->last_tk_len = entry->ptk.tk_len;
+		}
+#endif /* CONFIG_TESTING_OPTIONS */
 
 		wpa_drv_set_key(wpa_s, -1, alg, pasn->peer_addr, 0, 1,
 				NULL, 0, entry->ptk.tk, entry->ptk.tk_len,

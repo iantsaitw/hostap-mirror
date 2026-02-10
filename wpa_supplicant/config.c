@@ -2959,6 +2959,7 @@ static const struct parse_data ssid_fields[] = {
 #ifdef CONFIG_PASN
 	{ FUNC(pasn_groups) },
 #endif /* CONFIG_PASN */
+	{ INT_RANGE(pmkid_rnd_initial, 0, 1)},
 };
 
 #undef OFFSET

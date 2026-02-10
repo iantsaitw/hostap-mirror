@@ -678,6 +678,8 @@ static int wpa_supplicant_ssid_bss_match(struct wpa_supplicant *wpa_s,
 #endif /* CONFIG_WEP */
 	bool is_6ghz_bss = is_6ghz_freq(bss->freq);
 
+	wpa_dbg(wpa_s, MSG_DEBUG, "   select - SSID %s", wpa_ssid_txt(ssid->ssid, ssid->ssid_len));
+
 	ret = wpas_wps_ssid_bss_match(wpa_s, ssid, bss);
 	if (ret >= 0)
 		return ret;
@@ -701,12 +703,15 @@ static int wpa_supplicant_ssid_bss_match(struct wpa_supplicant *wpa_s,
 	while ((ssid->proto & WPA_PROTO_RSN) && rsn_ie) {
 		proto_match++;
 
+		wpa_dbg(wpa_s, MSG_DEBUG, "[rtk_dbg] rsn_ie len=%d, rsn_ie[0]=0x%x, rsn_ie[1]=0x%x", 2 + rsn_ie[1], rsn_ie[0], rsn_ie[1]);
+
 		if (wpa_parse_wpa_ie(rsn_ie, 2 + rsn_ie[1], &ie)) {
 			if (debug_print)
 				wpa_dbg(wpa_s, MSG_DEBUG,
 					"   skip RSN IE - parse failed");
 			break;
 		}
+
 		if (!ie.has_pairwise)
 			ie.pairwise_cipher = wpa_default_rsn_cipher(bss->freq);
 		if (!ie.has_group)
@@ -777,10 +782,16 @@ static int wpa_supplicant_ssid_bss_match(struct wpa_supplicant *wpa_s,
 					 WPA_KEY_MGMT_PSK_SHA256);
 		}
 
+		wpa_dbg(wpa_s, MSG_DEBUG, "[rtk_dbg] RSN IE proto=0x%x pairwise=0x%x "
+			"group=0x%x key_mgmt=0x%x mgmt_group_cipher=0x%x (ssid->key_mgmt=0x%x) "
+			"capabilities=0x%x",
+			ie.proto, ie.pairwise_cipher, ie.group_cipher,
+			ie.key_mgmt, ie.mgmt_group_cipher, ssid->key_mgmt, ie.capabilities);
+
 		if (!(ie.key_mgmt & ssid->key_mgmt)) {
 			if (debug_print)
 				wpa_dbg(wpa_s, MSG_DEBUG,
-					"   skip RSN IE - key mgmt mismatch");
+					"   skip RSN IE - key mgmt mismatch (ie.key_mgmt=0x%x ssid->key_mgmt=0x%x)", ie.key_mgmt, ssid->key_mgmt);
 			break;
 		}
 
@@ -1776,6 +1787,11 @@ wpa_supplicant_select_bss(struct wpa_supplicant *wpa_s,
 
 	for (i = 0; i < wpa_s->last_scan_res_used; i++) {
 		struct wpa_bss *bss = wpa_s->last_scan_res[i];
+
+		wpa_dbg(wpa_s, MSG_DEBUG, "[rtk_dbg] -----> %u: ssid=%s " MACSTR
+			" freq=%d level=%d snr=%d est_throughput=%u",
+			i, wpa_ssid_txt(bss->ssid, bss->ssid_len), MAC2STR(bss->bssid), bss->freq, bss->level,
+			bss->snr, bss->est_throughput);
 
 		wpa_s->owe_transition_select = 1;
 		*selected_ssid = wpa_scan_res_match(wpa_s, i, bss, group,

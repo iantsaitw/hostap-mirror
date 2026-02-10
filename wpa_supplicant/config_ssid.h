@@ -23,7 +23,7 @@
 #define DEFAULT_PAIRWISE (WPA_CIPHER_CCMP)
 #define DEFAULT_GROUP (WPA_CIPHER_CCMP)
 #else /* CONFIG_NO_TKIP */
-#define DEFAULT_PAIRWISE (WPA_CIPHER_CCMP | WPA_CIPHER_TKIP)
+#define DEFAULT_PAIRWISE (WPA_CIPHER_CCMP | WPA_CIPHER_TKIP | WPA_CIPHER_GCMP_256)
 #define DEFAULT_GROUP (WPA_CIPHER_CCMP | WPA_CIPHER_TKIP)
 #endif /* CONFIG_NO_TKIP */
 #define DEFAULT_FRAGMENT_SIZE 1398
@@ -1354,6 +1354,8 @@ struct wpa_ssid {
 	 * connection even if the same cached PMKSA is reused.
 	 */
 	int pmksa_privacy;
+
+	int pmkid_rnd_initial;
 
 #ifdef CONFIG_IEEE8021X_AUTH
 	/**
