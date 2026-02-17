@@ -3548,6 +3548,12 @@ static void wpas_parse_connection_info(struct wpa_supplicant *wpa_s,
 	if (resp_elems.key_delivery)
 		wpa_s->assoc_resp_encrypted = true;
 #endif /* CONFIG_ENC_ASSOC */
+#ifdef CONFIG_PMKSA_PRIVACY
+	if (resp_elems.nonce) {
+		os_memcpy(wpa_s->pmkidanonce, resp_elems.nonce, NONCE_LEN);
+		wpa_s->pmkidanonce_set = true;
+	}
+#endif /* CONFIG_PMKSA_PRIVACY */
 
 	sta_supported_chan_width = get_supported_channel_width(&req_elems);
 	ap_operation_chan_width = get_operation_channel_width(&resp_elems);
