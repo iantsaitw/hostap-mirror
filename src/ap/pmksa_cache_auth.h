@@ -37,6 +37,7 @@ struct rsn_pmksa_cache_entry {
 	int opportunistic;
 
 	u64 acct_multi_session_id;
+	u16 auth_alg;
 };
 
 struct rsn_pmksa_cache;
