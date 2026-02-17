@@ -4721,6 +4721,31 @@ static void wpa_supplicant_event_assoc(struct wpa_supplicant *wpa_s,
 	}
 	wpa_sm_notify_assoc(wpa_s->wpa, bssid);
 
+#ifdef CONFIG_PMKSA_PRIVACY
+	if (wpa_s->pmkidanonce_set && wpa_s->pmkidsnonce_set &&
+	    wpa_s->assoc_resp_encrypted &&
+	    wpa_sm_pmksa_privacy_supported(wpa_s->wpa) &&
+	    (wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_ASSOCIATION_FRAME_ENCRYPTION)) {
+		struct rsn_pmksa_cache *t = wpa_sm_get_pmksa_cache(wpa_s->wpa);
+		const u8 *addr = wpa_s->valid_links ? wpa_s->ap_mld_addr : wpa_s->bssid;
+
+		struct rsn_pmksa_cache_entry *e = pmksa_cache_get(t, addr, NULL,
+								  NULL, 0,
+								  wpa_s->key_mgmt);
+		if (e && e->auth_alg == WLAN_AUTH_EPPKE) {
+			rsn_pmkid_privacy(wpa_s->pmkidanonce, wpa_s->pmkidsnonce,
+					  e->pmkid, wpa_s->key_mgmt, e->pmk_len);
+		} else {
+			wpa_printf(MSG_DEBUG, "PMKSA Cache entry not found for "
+				   MACSTR, MAC2STR(addr));
+			wpa_s->pmkidanonce_set = false;
+			wpa_s->pmkidsnonce_set = false;
+			return;
+		}
+		wpa_s->pmkidanonce_set = false;
+		wpa_s->pmkidsnonce_set = false;
+	}
+#endif
 	if (wpa_sm_set_ml_info(wpa_s)) {
 		wpa_dbg(wpa_s, MSG_INFO,
 			"Failed to set MLO connection info to wpa_sm");
