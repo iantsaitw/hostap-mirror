@@ -5167,6 +5167,9 @@ int wpa_sm_set_param(struct wpa_sm *sm, enum wpa_sm_conf_params param,
 	case WPA_PARAM_ASSOC_ENC:
 		sm->assoc_encryption = !!value;
 		break;
+	case WPA_PARAM_PMKSA_CACHING_PRIVACY:
+		sm->pmksa_privacy = !!value;
+		break;
 	default:
 		break;
 	}
@@ -7712,4 +7715,10 @@ int wpa_eppke_is_completed(struct wpa_sm *sm)
 #else /* CONFIG_ENC_ASSOC */
 	return 0;
 #endif /* CONFIG_ENC_ASSOC */
+}
+
+
+bool wpa_sm_pmksa_privacy_supported(struct wpa_sm *sm)
+{
+	return !!(sm->pmksa_privacy);
 }
