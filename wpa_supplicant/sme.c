@@ -789,6 +789,8 @@ static void wpas_eppke_initialize(struct wpa_supplicant *wpa_s,
 	}
 	pasn->akmp = wpa_s->key_mgmt;
 	pasn->cipher = wpa_s->pairwise_cipher;
+	pasn->group_cipher = wpa_s->group_cipher;
+	pasn->group_mgmt_cipher = wpa_s->mgmt_group_cipher;
 	pasn->group = group;
 	pasn->freq = bss->freq;
 	pasn->auth_alg = WLAN_AUTH_EPPKE;
