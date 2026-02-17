@@ -102,6 +102,11 @@ struct sta_info {
 #ifdef CONFIG_ENC_ASSOC
 	bool epp_sta; /* Indicates if the station is an EPP peer */
 #endif /* CONFIG_ENC_ASSOC */
+#ifdef CONFIG_PMKSA_PRIVACY
+	u8 snonce[NONCE_LEN]; /* Snonce to compute next PMKID if
+			       * PMKID caching Privacy is on */
+	u8 epp_pmkid_next[PMKID_LEN];
+#endif /* CONFIG_PMKSA_PRIVACY */
 
 #ifdef CONFIG_MESH
 	enum mesh_plink_state plink_state;
