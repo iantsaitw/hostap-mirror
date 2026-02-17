@@ -3098,6 +3098,48 @@ mscs_fail:
 		}
 	}
 
+#ifdef CONFIG_PMKSA_PRIVACY
+	if (ssid->pmksa_privacy &&
+	    wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_ASSOCIATION_FRAME_ENCRYPTION) {
+		struct wpabuf *buf;
+		size_t len = 3 + NONCE_LEN;
+		u8 snonce[NONCE_LEN];
+
+		buf = wpabuf_alloc(len);
+		if (!buf)
+			return;
+
+		if (os_get_random(snonce, sizeof(snonce)) < 0) {
+			wpa_printf(MSG_ERROR,
+				   "PMKSA PRIVACY: Failed to generate SNonce");
+			return;
+		}
+		wpabuf_put_u8(buf, WLAN_EID_EXTENSION); /* EID Extension */
+		wpabuf_put_u8(buf, 1 + NONCE_LEN); /* Length */
+		wpabuf_put_u8(buf, WLAN_EID_EXT_NONCE); /* Element ID */
+		wpabuf_put_data(buf, snonce, NONCE_LEN);
+
+		if (wpa_s->sme.assoc_req_ie_len + wpabuf_len(buf) >
+		    sizeof(wpa_s->sme.assoc_req_ie)) {
+			wpa_printf(MSG_ERROR,
+			"AssocReq IE buffer too small for SNonce");
+			wpabuf_free(buf);
+			return;
+		}
+
+		os_memcpy(wpa_s->sme.assoc_req_ie + wpa_s->sme.assoc_req_ie_len,
+			  wpabuf_head(buf), wpabuf_len(buf));
+		wpa_s->sme.assoc_req_ie_len += wpabuf_len(buf);
+		wpabuf_free(buf);
+		wpa_hexdump(MSG_DEBUG, "PMKSA PRIVACY: PMKIDSNonce in Assoc Request",
+			    snonce, NONCE_LEN);
+		params.wpa_ie = wpa_s->sme.assoc_req_ie;
+		params.wpa_ie_len = wpa_s->sme.assoc_req_ie_len;
+		os_memcpy(wpa_s->pmkidsnonce, snonce, NONCE_LEN);
+		wpa_s->pmkidsnonce_set = true;
+	}
+#endif /* CONFIG_PMKSA_PRIVACY */
+
 	if (wpa_drv_associate(wpa_s, &params) < 0) {
 		unsigned int n_failed_links = 0;
 		int i;

@@ -1688,6 +1688,10 @@ struct wpa_supplicant {
 	bool assoc_resp_encrypted; /* Whether (Re)Association Response frame
 				    * is encrypted. */
 #endif /* CONFIG_ENC_ASSOC */
+#ifdef CONFIG_PMKSA_PRIVACY
+	u8 pmkidsnonce[NONCE_LEN];
+	bool pmkidsnonce_set;
+#endif /* CONFIG_PMKSA_PRIVACY */
 };
 
 
