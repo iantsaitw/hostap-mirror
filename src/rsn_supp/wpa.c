@@ -7510,6 +7510,7 @@ int process_encrypted_assoc_resp(struct wpa_sm *sm, u64 flags, int valid_links,
 	struct wpa_gtk_data gd;
 	int maxkeylen;
 	struct wpa_eapol_ie_parse kde;
+	struct wpabuf *buf = NULL;
 
 	if (!sm || !sm->ptk_set) {
 		wpa_printf(MSG_DEBUG, "ENC_ASSOC: No KEK available");
@@ -7557,10 +7558,14 @@ int process_encrypted_assoc_resp(struct wpa_sm *sm, u64 flags, int valid_links,
 
 	/* TO-DO: Check for RSNE/RSNXE mismatch for per-STA profile for MLO */
 	/* Key Delivery Element*/
-	if (!elems.key_delivery) {
+	buf = ieee802_11_defrag(elems.key_delivery, elems.key_delivery_len,
+				true);
+	if (!buf) {
 		wpa_printf(MSG_DEBUG, "ENC_ASSOC: No Key Delivery element");
 		goto fail;
 	}
+	elems.key_delivery = wpabuf_head(buf);
+	elems.key_delivery_len = wpabuf_len(buf);
 
 	/* Parse GTK and set the key to the driver */
 	if (wpa_supplicant_parse_ies(elems.key_delivery + WPA_KEY_RSC_LEN,
@@ -7682,10 +7687,12 @@ int process_encrypted_assoc_resp(struct wpa_sm *sm, u64 flags, int valid_links,
 	wpa_printf(MSG_DEBUG, "ENC_ASSOC: Association completed successfully");
 	wpa_sm_set_reset_eppke_completed(sm, 1);
 	forced_memzero(&gd, sizeof(gd));
+	wpabuf_free(buf);
 
 	return 0;
 fail:
 	forced_memzero(&gd, sizeof(gd));
+	wpabuf_free(buf);
 	return -1;
 }
 
