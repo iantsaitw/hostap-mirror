@@ -7485,3 +7485,199 @@ int wpa_sm_install_mlo_group_keys(struct wpa_sm *sm, const u8 *key_data,
 
 	return 0;
 }
+
+
+#ifdef CONFIG_ENC_ASSOC
+int process_encrypted_assoc_resp(struct wpa_sm *sm, u64 flags, int valid_links,
+				 const u8 *ies, size_t ies_len)
+{
+	struct ieee802_11_elems elems;
+	struct wpa_gtk_data gd;
+	int maxkeylen;
+	struct wpa_eapol_ie_parse kde;
+
+	if (!sm || !sm->ptk_set) {
+		wpa_printf(MSG_DEBUG, "ENC_ASSOC: No KEK available");
+		return -1;
+	}
+
+	wpa_sm_set_reset_eppke_completed(sm, 0);
+	wpa_hexdump(MSG_DEBUG, "ENC_ASSOC: (Re)Association Response frame",
+		    ies, ies_len);
+
+	if (ieee802_11_parse_elems(ies, ies_len, &elems, 1) == ParseFailed)
+		return -1;
+
+	if (!elems.rsn_ie) {
+		wpa_printf(MSG_DEBUG,
+			   "ENC_ASSOC: No RSNE in (Re)Association Response");
+	} else if (wpa_compare_rsn_ie(wpa_key_mgmt_sae(sm->key_mgmt),
+				      sm->ap_rsn_ie, sm->ap_rsn_ie_len,
+				      elems.rsn_ie - 2,
+				      elems.rsn_ie_len + 2)) {
+		wpa_msg(sm->ctx->msg_ctx, MSG_INFO,
+			"ENC_ASSOC: RSNE mismatch between Beacon/Probe Response and (Re)Association Response");
+		wpa_hexdump(MSG_DEBUG, "ENC_ASSOC: RSNE in Beacon/Probe Response",
+			    sm->ap_rsn_ie, sm->ap_rsn_ie_len);
+		wpa_hexdump(MSG_DEBUG, "ENC_ASSOC: RSNE in (Re)Association Response",
+			    elems.rsn_ie, elems.rsn_ie_len);
+		goto fail;
+	}
+
+	if ((sm->ap_rsnxe && !elems.rsnxe) ||
+	    (!sm->ap_rsnxe && elems.rsnxe) ||
+	    (sm->ap_rsnxe && elems.rsnxe && sm->ap_rsnxe_len >= 2 &&
+	     (sm->ap_rsnxe_len != 2U + elems.rsnxe_len ||
+	      os_memcmp(sm->ap_rsnxe + 2, elems.rsnxe, sm->ap_rsnxe_len - 2) !=
+	      0))) {
+		wpa_msg(sm->ctx->msg_ctx, MSG_INFO,
+			"ENC_ASSOC: RSNXE mismatch between Beacon/Probe Response and (Re)Association Response");
+		wpa_hexdump(MSG_INFO, "ENC_ASSOC: RSNXE in Beacon/Probe Response",
+			    sm->ap_rsnxe, sm->ap_rsnxe_len);
+		wpa_hexdump(MSG_INFO, "ENC_ASSOC: RSNXE in (Re)Association Response",
+			    elems.rsnxe, elems.rsnxe_len);
+		if (sm->assoc_rsnxe && sm->assoc_rsnxe_len)
+			goto fail;
+	}
+
+	/* TO-DO: Check for RSNE/RSNXE mismatch for per-STA profile for MLO */
+	/* Key Delivery Element*/
+	if (!elems.key_delivery) {
+		wpa_printf(MSG_DEBUG, "ENC_ASSOC: No Key Delivery element");
+		goto fail;
+	}
+
+	/* Parse GTK and set the key to the driver */
+	if (wpa_supplicant_parse_ies(elems.key_delivery + WPA_KEY_RSC_LEN,
+				     elems.key_delivery_len - WPA_KEY_RSC_LEN,
+				     &kde) < 0) {
+		wpa_printf(MSG_DEBUG, "ENC_ASSOC: Failed to parse KDEs");
+		goto fail;
+	}
+
+	if ((flags & WPA_DRIVER_FLAGS2_MLO) && valid_links != -1) {
+		u8 i;
+
+		for_each_link(valid_links, i) {
+			size_t gtk_kde_len;
+			int rsc_len;
+
+			if (!kde.mlo_gtk[i]) {
+				wpa_msg(sm->ctx->msg_ctx, MSG_ERROR,
+					"ENC_ASSOC: No MLO GTK for link ID %u", i);
+				return -1;
+			}
+
+			os_memset(&gd, 0, sizeof(gd));
+			gtk_kde_len = kde.mlo_gtk_len[i];
+
+			/* Minimal sanity:
+			 * 1 byte KeyID + RSC + at least 5 bytes GTK
+			 */
+			if (gtk_kde_len < 1 + 6 + 5) {
+				wpa_printf(MSG_DEBUG, "ENC_ASSOC: Invalid MLO GTK"
+					   " KDE len=%lu for link %u",
+					   gtk_kde_len, i);
+				goto fail;
+			}
+
+			wpa_hexdump_key(MSG_DEBUG, "ENC_ASSOC: Received MLO GTK",
+					kde.mlo_gtk[i], gtk_kde_len);
+
+			/* KeyID in low 2 bits;
+			 * Tx bit workaround from KDE[0] bit2
+			 */
+			gd.keyidx = kde.mlo_gtk[i][0] & 0x3;
+			gd.tx = wpa_supplicant_gtk_tx_bit_workaround(sm,
+								     !!(kde.mlo_gtk[i][0] & BIT(2)));
+
+			rsc_len = wpa_cipher_rsc_len(sm->group_cipher); /* returns PN/RSC length */
+			if (rsc_len <= 0) {
+				wpa_printf(MSG_DEBUG, "ENC_ASSOC: Unsupported group cipher (no RSC len)");
+				goto fail;
+			}
+
+			/* Actual GTK length = total KDE - KeyID(1) - RSC/PN.
+			 * For CCMP/GCMP, gtk_kde_len is typically 23 -> 23 - 1 - 6 = 16.
+			 */
+			gd.gtk_len = gtk_kde_len - 1 - rsc_len;
+
+			/* Validate GTK length against algorithm requirements */
+			if (wpa_supplicant_check_group_cipher(sm, sm->group_cipher,
+							      gd.gtk_len, gd.gtk_len,
+							      &gd.key_rsc_len, &gd.alg))
+				goto fail;
+
+			if ((size_t) gd.gtk_len > sizeof(gd.gtk)) {
+				wpa_printf(MSG_DEBUG, "ENC_ASSOC: Too long GTK in"
+					   " GTK KDE (len=%u)", gd.gtk_len);
+				goto fail;
+			}
+
+			os_memcpy(gd.gtk, kde.mlo_gtk[i] + 1 + rsc_len, gd.gtk_len);
+
+			if (wpa_supplicant_install_mlo_gtk(sm, i, &gd, elems.key_delivery, 0) < 0) {
+				wpa_printf(MSG_DEBUG, "ENC_ASSOC: Failed to set MLO GTK (link=%u)", i);
+				goto fail;
+			}
+
+			if (_mlo_ieee80211w_set_keys(sm, i, &kde) < 0) {
+				wpa_printf(MSG_DEBUG, "ENC_ASSOC: Failed to set MLO IGTK (link=%u)", i);
+				goto fail;
+			}
+		}
+	} else {
+		os_memset(&gd, 0, sizeof(gd));
+
+		if (!kde.gtk) {
+			wpa_printf(MSG_DEBUG, "ENC_ASSOC: No GTK KDE");
+			goto fail;
+		}
+		maxkeylen = gd.gtk_len = kde.gtk_len - 2;
+		if (wpa_supplicant_check_group_cipher(sm, sm->group_cipher,
+						      gd.gtk_len, maxkeylen,
+						      &gd.key_rsc_len, &gd.alg))
+			goto fail;
+
+		wpa_hexdump_key(MSG_DEBUG, "ENC_ASSOC: Received GTK", kde.gtk, kde.gtk_len);
+		gd.keyidx = kde.gtk[0] & 0x3;
+		gd.tx = wpa_supplicant_gtk_tx_bit_workaround(sm,
+							     !!(kde.gtk[0] & BIT(2)));
+		if (kde.gtk_len - 2 > sizeof(gd.gtk)) {
+			wpa_printf(MSG_DEBUG, "ENC_ASSOC: Too long GTK in GTK KDE (len=%lu)",
+				   (unsigned long) kde.gtk_len - 2);
+			goto fail;
+		}
+		os_memcpy(gd.gtk, kde.gtk + 2, kde.gtk_len - 2);
+
+		wpa_printf(MSG_DEBUG, "ENC_ASSOC: Set GTK to driver");
+		if (wpa_supplicant_install_gtk(sm, &gd, elems.key_delivery, 0) < 0) {
+			wpa_printf(MSG_DEBUG, "ENC_ASSOC: Failed to set GTK");
+			goto fail;
+		}
+
+		if (ieee80211w_set_keys(sm, &kde) < 0) {
+			wpa_printf(MSG_DEBUG, "ENC_ASSOC: Failed to set IGTK");
+			goto fail;
+		}
+	}
+
+	wpa_sm_set_rekey_offload(sm);
+
+	wpa_printf(MSG_DEBUG, "ENC_ASSOC: Association completed successfully");
+	wpa_sm_set_reset_eppke_completed(sm, 1);
+	forced_memzero(&gd, sizeof(gd));
+
+	return 0;
+fail:
+	forced_memzero(&gd, sizeof(gd));
+	return -1;
+}
+
+
+void wpa_sm_set_reset_eppke_completed(struct wpa_sm *sm, int set)
+{
+	if (sm)
+		sm->eppke_completed = !!set;
+}
+#endif /* CONFIG_ENC_ASSOC */
