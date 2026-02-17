@@ -8055,7 +8055,8 @@ u8 * wpa_auth_eid_key_delivery(u8 *eid, size_t max_len,
 
 
 u8 * wpa_auth_write_assoc_resp_eppke(struct wpa_state_machine *sm,
-				     u8 *pos, size_t max_len, bool is_ml)
+				     u8 *pos, size_t max_len, bool is_ml,
+				     const u8 *pmkid)
 {
 	int res;
 	u8 *end = pos + max_len;
@@ -8063,7 +8064,7 @@ u8 * wpa_auth_write_assoc_resp_eppke(struct wpa_state_machine *sm,
 	if (!sm)
 		return pos;
 
-	res = wpa_write_rsn_ie(&sm->wpa_auth->conf, pos, max_len, NULL);
+	res = wpa_write_rsn_ie(&sm->wpa_auth->conf, pos, max_len, pmkid);
 	if (res < 0)
 		return pos;
 	pos += res;

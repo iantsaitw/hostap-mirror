@@ -6055,6 +6055,8 @@ rsnxe_done:
 #ifdef CONFIG_ENC_ASSOC
 	if (sta && sta->auth_alg == WLAN_AUTH_EPPKE &&
 	    status_code == WLAN_STATUS_SUCCESS) {
+		const u8 *pmkid_next = NULL;
+
 		reply->frame_control |= WLAN_FC_PROTECTED;
 
 #ifdef CONFIG_PMKSA_PRIVACY
@@ -6062,6 +6064,7 @@ rsnxe_done:
 		if (wpa_auth_ap_sta_support_pmkid_privacy(sta->wpa_sm)) {
 			switch (sta->auth_alg) {
 			case WLAN_AUTH_EPPKE:
+				pmkid_next = sta->epp_pmkid_next;
 				break;
 			default:
 				wpa_printf(MSG_INFO,
@@ -6079,9 +6082,14 @@ rsnxe_done:
 	skip_nonce:
 #endif /* CONFIG_PMKSA_PRIVACY */
 
+		/* Per IEEE 802.11bi/D4.0, 12.16.7.2 (PMKSA caching privacy),
+		 * when the PMKSA Caching Privacy Support field in the RSNXE is
+		 * 1, the AP stores the anonymized PMKID created by the PMKID
+		 * nonces in the (Re)Association Response frames. */
 		p = wpa_auth_write_assoc_resp_eppke(sta->wpa_sm, p,
 						    buf + buflen - p,
-						    ap_sta_is_mld(hapd, sta));
+						    ap_sta_is_mld(hapd, sta),
+						    pmkid_next);
 	}
 #endif /* CONFIG_ENC_ASSOC */
 
