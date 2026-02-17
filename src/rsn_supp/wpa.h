@@ -665,12 +665,15 @@ struct wpabuf * fils_build_assoc_req(struct wpa_sm *sm, const u8 **kek,
 				     const struct wpabuf **hlp,
 				     unsigned int num_hlp);
 int fils_process_assoc_resp(struct wpa_sm *sm, const u8 *resp, size_t len);
+int process_encrypted_assoc_resp(struct wpa_sm *sm, u64 flags, int link_id,
+				 const u8 *ies, size_t ies_len);
 
 struct wpabuf * owe_build_assoc_req(struct wpa_sm *sm, u16 group);
 int owe_process_assoc_resp(struct wpa_sm *sm, const u8 *bssid,
 			   const u8 *resp_ies, size_t resp_ies_len);
 
 void wpa_sm_set_reset_fils_completed(struct wpa_sm *sm, int set);
+void wpa_sm_set_reset_eppke_completed(struct wpa_sm *sm, int set);
 void wpa_sm_set_fils_cache_id(struct wpa_sm *sm, const u8 *fils_cache_id);
 void wpa_sm_set_dpp_z(struct wpa_sm *sm, const struct wpabuf *z);
 void wpa_pasn_sm_set_caps(struct wpa_sm *sm, unsigned int flags2);

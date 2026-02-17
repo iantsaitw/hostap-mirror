@@ -3544,6 +3544,10 @@ static void wpas_parse_connection_info(struct wpa_supplicant *wpa_s,
 		resp_elems.eht_capabilities;
 	if (req_elems.rrm_enabled)
 		wpa_s->rrm.rrm_used = 1;
+#ifdef CONFIG_ENC_ASSOC
+	if (resp_elems.key_delivery)
+		wpa_s->assoc_resp_encrypted = true;
+#endif /* CONFIG_ENC_ASSOC */
 
 	sta_supported_chan_width = get_supported_channel_width(&req_elems);
 	ap_operation_chan_width = get_operation_channel_width(&resp_elems);
@@ -3660,10 +3664,16 @@ static int wpa_supplicant_event_associnfo(struct wpa_supplicant *wpa_s,
 	u8 bssid[ETH_ALEN];
 	bool bssid_known;
 	enum wpa_rsn_override rsn_override;
+#ifdef CONFIG_ENC_ASSOC
+	struct ptksa_cache_entry *entry;
+#endif /* CONFIG_ENC_ASSOC */
 
 	wpa_dbg(wpa_s, MSG_DEBUG, "Association info event");
 	wpa_s->ssid_verified = false;
 	wpa_s->bigtk_set = false;
+#ifdef CONFIG_ENC_ASSOC
+	wpa_s->assoc_resp_encrypted = false;
+#endif /* CONFIG_ENC_ASSOC */
 #ifdef CONFIG_SAE
 #ifdef CONFIG_SME
 	/* SAE H2E binds the SSID into PT and that verifies the SSID
@@ -3796,6 +3806,33 @@ static int wpa_supplicant_event_associnfo(struct wpa_supplicant *wpa_s,
 		wpa_sm_set_reset_fils_completed(wpa_s->wpa, 1);
 #endif /* CONFIG_FILS */
 
+#ifdef CONFIG_ENC_ASSOC
+	entry = ptksa_cache_get(wpa_s->ptksa, wpa_s->valid_links ?
+				wpa_s->ap_mld_addr : bssid,
+				wpa_s->pairwise_cipher);
+
+	if (wpa_s->assoc_resp_encrypted && (wpa_s->drv_flags2 &
+	    WPA_DRIVER_FLAGS2_ASSOCIATION_FRAME_ENCRYPTION) &&
+	    entry && entry->auth_alg == WLAN_AUTH_EPPKE) {
+		wpa_sm_set_ptk_kck_kek(wpa_s->wpa,
+				       entry->ptk.hash_alg,
+				       entry->ptk.kck,
+				       entry->ptk.kck_len,
+				       entry->ptk.kek,
+				       entry->ptk.kek_len);
+		if (process_encrypted_assoc_resp(wpa_s->wpa,
+						 wpa_s->drv_flags2,
+						 wpa_s->valid_links ?
+						 wpa_s->valid_links : -1,
+						 data->assoc_info.resp_ies,
+						 data->assoc_info.resp_ies_len)
+						 < 0) {
+			wpa_supplicant_deauthenticate(wpa_s,
+						      WLAN_REASON_UNSPECIFIED);
+			return -1;
+		}
+	}
+#endif /* CONFIG_ENC_ASSOC */
 #ifdef CONFIG_OWE
 	if (wpa_s->key_mgmt == WPA_KEY_MGMT_OWE &&
 	    !(wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_OWE_OFFLOAD_STA) &&
