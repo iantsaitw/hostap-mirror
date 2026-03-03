@@ -628,7 +628,6 @@ sme_eppke_sae_derive_pt(struct wpa_ssid *ssid, int group)
 			     os_strlen(ssid->sae_password_id) : 0);
 }
 
-
 static void wpas_eppke_initialize(struct wpa_supplicant *wpa_s,
 				  struct wpa_bss *bss,
 				  struct wpa_ssid *ssid)
@@ -705,7 +704,9 @@ static void wpas_eppke_initialize(struct wpa_supplicant *wpa_s,
 	capab |= BIT(WLAN_RSNX_CAPAB_ASSOC_FRAME_ENCRYPTION);
 	capab |= BIT(WLAN_RSNX_CAPAB_KEK_IN_PASN);
 #ifdef CONFIG_PMKSA_PRIVACY
-	capab |= BIT(WLAN_RSNX_CAPAB_PMKSA_CACHING_PRIVACY);
+	/* PE-17.4 - align rsnxe of eppke auth 1 and association request */
+	if (ssid->pmksa_privacy)
+		capab |= BIT(WLAN_RSNX_CAPAB_PMKSA_CACHING_PRIVACY);
 #endif /* CONFIG_PMKSA_PRIVACY */
 	pasn->derive_kek = true;
 

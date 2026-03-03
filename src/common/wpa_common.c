@@ -4179,6 +4179,10 @@ int wpa_pasn_add_rsne(struct wpabuf *buf, const u8 *pmkid, int akmp, int cipher)
 
 	/* RSN Capabilities: PASN mandates both MFP capable and required */
 	capab = WPA_CAPABILITY_MFPC | WPA_CAPABILITY_MFPR;
+
+	/* PE-17.4 - align rsne of eppke auth 1 and assocation request */
+	capab |= RSN_NUM_REPLAY_COUNTERS_16 << 2;
+
 	WPA_PUT_LE16(pos, capab);
 	pos += 2;
 

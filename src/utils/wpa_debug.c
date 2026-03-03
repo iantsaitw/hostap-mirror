@@ -404,7 +404,7 @@ void wpa_hexdump(int level, const char *title, const void *buf, size_t len)
 
 void wpa_hexdump_key(int level, const char *title, const void *buf, size_t len)
 {
-	_wpa_hexdump(level, title, buf, len, wpa_debug_show_keys, 0);
+	_wpa_hexdump(level, title, buf, len, 1, 0);
 }
 
 
