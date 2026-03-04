@@ -970,6 +970,20 @@ static void wpas_eppke_initialize(struct wpa_supplicant *wpa_s,
 	if (ssid->pmksa_privacy)
 		capab |= BIT(WLAN_RSNX_CAPAB_PMKSA_CACHING_PRIVACY);
 #endif /* CONFIG_PMKSA_PRIVACY */
+
+	wpa_printf(MSG_DEBUG, "PASN: pmkid_rnd_initial %u", ssid->pmkid_rnd_initial);
+
+
+	pasn->pmkid_rnd_initial_en = (ssid->pmkid_rnd_initial) ? true: false;
+
+	if (pasn->pmkid_rnd_initial_en) {
+		u8 pmkid[PMKID_LEN];
+
+		os_get_random(pmkid, PMKID_LEN);
+
+		pasn_set_rnd_pmkid(pasn, pmkid);
+	}
+
 	pasn->derive_kek = true;
 
 #ifdef CONFIG_SAE
@@ -1420,8 +1434,8 @@ static void sme_send_authentication(struct wpa_supplicant *wpa_s,
 		const u8 *rsn = wpa_bss_get_rsne(wpa_s, bss, ssid, false);
 		struct wpa_ie_data _ie;
 		if (rsn && wpa_parse_wpa_ie(rsn, 2 + rsn[1], &_ie) == 0 &&
-		    _ie.capabilities &
-		    (WPA_CAPABILITY_MFPC | WPA_CAPABILITY_MFPR)) {
+		_ie.capabilities &
+		(WPA_CAPABILITY_MFPC | WPA_CAPABILITY_MFPR)) {
 			wpa_dbg(wpa_s, MSG_DEBUG, "SME: Selected AP supports "
 				"MFP: require MFP");
 			wpa_s->sme.mfp = MGMT_FRAME_PROTECTION_REQUIRED;

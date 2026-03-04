@@ -678,7 +678,10 @@ struct wpabuf * wpas_pasn_build_auth_1(struct pasn_data *pasn,
 			wrapped_data_buf = wpas_pasn_get_wrapped_data(pasn);
 	}
 
-	if (pasn->rsn_ie && pasn->rsn_ie_len)
+	if (pasn->pmkid_rnd_initial_en) {
+		/* For APUT 16.5, should append the rnd pmkid in the rsn ie for auth only, */
+		wpa_pasn_add_rsne_wth_rnd_pmkid(buf, pasn->rsn_ie, pasn->rsn_ie_len, pasn->pmkid_rnd);
+	} else if (pasn->rsn_ie && pasn->rsn_ie_len)
 		wpabuf_put_data(buf, pasn->rsn_ie, pasn->rsn_ie_len);
 	else if (wpa_pasn_add_rsne(buf, pmkid, pasn->akmp, pasn->cipher) < 0)
 		goto fail;
