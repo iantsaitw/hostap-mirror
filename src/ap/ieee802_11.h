@@ -315,6 +315,7 @@ int ieee80211_ml_process_link(struct hostapd_data *hapd,
 			      enum link_parse_type type, bool offload,
 			      bool *set_beacon);
 void ieee80211_ml_build_assoc_resp(struct hostapd_data *hapd,
+				   struct sta_info *sta,
 				   struct mld_link_info *link);
 
 void ieee802_11_rx_protected_eht_action(struct hostapd_data *hapd,
