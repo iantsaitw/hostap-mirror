@@ -1354,6 +1354,9 @@ struct wpa_ssid {
 	 * connection even if the same cached PMKSA is reused.
 	 */
 	int pmksa_privacy;
+
+
+	int pmkid_rnd_initial;
 };
 
 #endif /* CONFIG_SSID_H */

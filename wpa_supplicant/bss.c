@@ -2413,6 +2413,8 @@ const u8 * wpa_bss_get_rsne(struct wpa_supplicant *wpa_s,
 			if (ie && wpa_bss_supported_rsne(wpa_s, ssid, ie))
 				return ie;
 		}
+	} else {
+		wpa_printf(MSG_DEBUG, "RSN overriding is not enabled");
 	}
 #endif /* CONFIG_NO_WPA */
 
