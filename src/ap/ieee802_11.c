@@ -5337,6 +5337,7 @@ static int check_assoc_ies(struct hostapd_data *hapd, struct sta_info *sta,
 #ifdef CONFIG_IEEE80211BE
 
 void ieee80211_ml_build_assoc_resp(struct hostapd_data *hapd,
+				   struct sta_info *sta,
 				   struct mld_link_info *link)
 {
 	u8 buf[EHT_ML_MAX_STA_PROF_LEN];
@@ -5517,7 +5518,7 @@ out:
 	link->status = status;
 
 	if (!offload && type != LINK_PARSE_RECONF)
-		ieee80211_ml_build_assoc_resp(hapd, link);
+		ieee80211_ml_build_assoc_resp(hapd, sta, link);
 
 	wpa_printf(MSG_DEBUG, "MLD: link: status=%u", status);
 	if (status != WLAN_STATUS_SUCCESS) {
@@ -5599,12 +5600,12 @@ int hostapd_process_assoc_ml_info(struct hostapd_data *hapd,
 
 			link->status = WLAN_STATUS_UNSPECIFIED_FAILURE;
 			if (!offload)
-				ieee80211_ml_build_assoc_resp(hapd, link);
+				ieee80211_ml_build_assoc_resp(hapd, sta, link);
 		} else if (tx_link_status != WLAN_STATUS_SUCCESS) {
 			/* TX link rejected the connection */
 			link->status = WLAN_STATUS_DENIED_TX_LINK_NOT_ACCEPTED;
 			if (!offload)
-				ieee80211_ml_build_assoc_resp(hapd, link);
+				ieee80211_ml_build_assoc_resp(hapd, sta, link);
 		} else {
 			if (ieee80211_ml_process_link(
 				    bss, sta, link, ies, ies_len,
