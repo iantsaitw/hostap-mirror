@@ -812,6 +812,10 @@ void wpa_pasn_build_auth_header(struct wpabuf *buf, const u8 *bssid,
 				const u8 *src, const u8 *dst,
 				u8 trans_seq, u16 status, bool is_eppke);
 
+void wpa_pasn_add_rsne_wth_rnd_pmkid(struct wpabuf *buf,
+				     void *data,
+				     size_t len,
+				     const u8 *pmkid);
 int wpa_pasn_add_rsne(struct wpabuf *buf, const u8 *pmkid,
 		      int akmp, int cipher);
 

@@ -4237,6 +4237,106 @@ void wpa_pasn_build_auth_header(struct wpabuf *buf, const u8 *bssid,
 	auth->u.auth.status_code = host_to_le16(status);
 }
 
+int _insert_rnd_pmkid_into_rsn_ie(u8 *rsn_ie, size_t max_buf_len, const u8 *pmkid)
+{
+	struct rsn_ie_hdr *hdr = (struct rsn_ie_hdr *) rsn_ie;
+	u8 *pos, *end;
+	u16 count;
+
+	/* 1. Basic validation: ensure it is a valid RSN IE */
+	if (hdr->elem_id != WLAN_EID_RSN) {
+		return -1;
+	}
+
+	/* 2. Skip fixed header and mandatory fields to find PMKID position */
+	/* Skip Element ID (1) and Length (1) */
+	pos = (u8 *) (hdr + 1);
+	/* Calculate the current end of the IE based on the length field */
+	end = rsn_ie + 2 + hdr->len;
+
+	/* Skip Version (2 bytes) - already handled by (hdr + 1) offset in some structs,
+	but let's be explicit based on your function's structure */
+	pos = hdr->version + 2;
+
+	/* Skip Group Cipher Suite (4 bytes) */
+	if (pos + RSN_SELECTOR_LEN > end)
+		return -1;
+	pos += RSN_SELECTOR_LEN;
+
+	/* Skip Pairwise Cipher Suite List (2 bytes count + n * 4 bytes suite) */
+	if (pos + 2 > end)
+		return -1;
+	count = WPA_GET_LE16(pos);
+	pos += 2 + count * RSN_SELECTOR_LEN;
+
+	/* Skip AKM Suite List (2 bytes count + n * 4 bytes suite) */
+	if (pos + 2 > end)
+		return -1;
+	count = WPA_GET_LE16(pos);
+	pos += 2 + count * RSN_SELECTOR_LEN;
+
+	/* Skip RSN Capabilities (2 bytes) */
+	if (pos + 2 > end)
+		return -1;
+	pos += 2;
+
+	/* --- Now 'pos' points to the start of the PMKID Count field --- */
+
+	/* 3. Handle PMKID field insertion or update */
+	if (pos >= end) {
+		/* Case A: No PMKID field or subsequent fields exist. Append at the end. */
+		if ((size_t)(pos - rsn_ie) + 2 + PMKID_LEN > max_buf_len) {
+			return -1;
+		}
+		WPA_PUT_LE16(pos, 1); /* PMKID Count = 1 */
+		os_memcpy(pos + 2, pmkid, PMKID_LEN);
+		hdr->len += (2 + PMKID_LEN);
+	} else {
+		/* Case B: PMKID Count field already exists */
+		u16 pmkid_count = WPA_GET_LE16(pos);
+
+		if (pmkid_count == 0) {
+			/* Count is 0, but there might be a Management Group Cipher following it.
+			We must shift the trailing data to make room for the PMKID. */
+			size_t tail_len = end - (pos + 2);
+			if (2 + hdr->len + PMKID_LEN > max_buf_len) {
+				return -1;
+			}
+
+			/* Shift trailing data (e.g., Management Group Cipher) right by PMKID_LEN */
+			os_memmove(pos + 2 + PMKID_LEN, pos + 2, tail_len);
+			/* Copy new PMKID into the gap */
+			os_memcpy(pos + 2, pmkid, PMKID_LEN);
+			/* Update PMKID Count to 1 */
+			WPA_PUT_LE16(pos, 1);
+			/* Update IE length field */
+			hdr->len += PMKID_LEN;
+		} else {
+			/* Case C: PMKID(s) already exist. Replace the first PMKID. */
+			os_memcpy(pos + 2, pmkid, PMKID_LEN);
+			/* Length remains unchanged as we are overwriting existing data */
+		}
+	}
+
+	/* Return the new total length of the IE */
+	return 2 + hdr->len;
+}
+
+void wpa_pasn_add_rsne_wth_rnd_pmkid(struct wpabuf *buf,
+				     void *data,
+				     size_t len,
+				     const u8 *pmkid)
+{
+	u8 rsne_cpy[80];
+	u8 len_aft = 0;
+
+	if (data)
+		os_memcpy(rsne_cpy, data, len);
+
+	len_aft = _insert_rnd_pmkid_into_rsn_ie(rsne_cpy, 80, pmkid);
+
+	wpabuf_put_data(buf, rsne_cpy, len_aft);
+}
 
 /*
  * wpa_pasn_add_rsne - Add an RSNE for PASN authentication
@@ -4328,6 +4428,10 @@ int wpa_pasn_add_rsne(struct wpabuf *buf, const u8 *pmkid, int akmp, int cipher)
 
 	/* RSN Capabilities: PASN mandates both MFP capable and required */
 	capab = WPA_CAPABILITY_MFPC | WPA_CAPABILITY_MFPR;
+
+	/* PE-17.4 - align rsne of eppke auth 1 and assocation request */
+	//capab |= RSN_NUM_REPLAY_COUNTERS_16 << 2;
+
 	WPA_PUT_LE16(pos, capab);
 	pos += 2;
 
