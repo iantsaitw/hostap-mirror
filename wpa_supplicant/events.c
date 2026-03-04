@@ -690,6 +690,8 @@ static int wpa_supplicant_ssid_bss_match(struct wpa_supplicant *wpa_s,
 		 (ssid->key_mgmt & WPA_KEY_MGMT_IEEE8021X_NO_WPA));
 #endif /* CONFIG_WEP */
 
+	wpa_printf(MSG_DEBUG, "going to parse rsne...");
+
 	rsn_ie = wpa_bss_get_rsne(wpa_s, bss, ssid, false);
 	if (is_6ghz_bss && !rsn_ie) {
 		if (debug_print)
@@ -707,6 +709,12 @@ static int wpa_supplicant_ssid_bss_match(struct wpa_supplicant *wpa_s,
 					"   skip RSN IE - parse failed");
 			break;
 		}
+
+		wpa_printf(MSG_DEBUG, "   RSN IE: group_cipher=0x%x "
+			   "pairwise_cipher=0x%x key_mgmt=0x%x "
+			   "mgmt_group_cipher=0x%x capabilities=0x%x ",
+			   ie.group_cipher, ie.pairwise_cipher,
+			   ie.key_mgmt, ie.mgmt_group_cipher, ie.capabilities);
 		if (!ie.has_pairwise)
 			ie.pairwise_cipher = wpa_default_rsn_cipher(bss->freq);
 		if (!ie.has_group)
@@ -780,7 +788,7 @@ static int wpa_supplicant_ssid_bss_match(struct wpa_supplicant *wpa_s,
 		if (!(ie.key_mgmt & ssid->key_mgmt)) {
 			if (debug_print)
 				wpa_dbg(wpa_s, MSG_DEBUG,
-					"   skip RSN IE - key mgmt mismatch");
+					"   skip RSN IE - key mgmt mismatch (ie.key_mgmt=0x%x ssid->key_mgmt=0x%x)", ie.key_mgmt, ssid->key_mgmt);
 			break;
 		}
 
