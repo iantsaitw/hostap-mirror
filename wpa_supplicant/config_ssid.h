@@ -1355,6 +1355,8 @@ struct wpa_ssid {
 	 */
 	int pmksa_privacy;
 
+	int pmkid_rnd_initial;
+
 #ifdef CONFIG_IEEE8021X_AUTH
 	/**
 	 * eap_over_auth_frame - IEEE 802.1X authentication in Authentication
