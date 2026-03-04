@@ -28,6 +28,9 @@
 int wpa_parse_wpa_ie(const u8 *wpa_ie, size_t wpa_ie_len,
 		     struct wpa_ie_data *data)
 {
+	wpa_printf(MSG_DEBUG, "WPA: Parsing WPA/RSN IE (len=%lu), wpa_ie[0]=%u, wpa_ie[1]=%u, WPA_GET_BE32(&wpa_ie[2])=0x%08x",
+		   (unsigned long) wpa_ie_len, wpa_ie[0], wpa_ie[1], WPA_GET_BE32(&wpa_ie[2]));
+
 	if (wpa_ie_len >= 1 && wpa_ie[0] == WLAN_EID_RSN)
 		return wpa_parse_wpa_ie_rsn(wpa_ie, wpa_ie_len, data);
 	if (wpa_ie_len >= 6 && wpa_ie[0] == WLAN_EID_VENDOR_SPECIFIC &&
