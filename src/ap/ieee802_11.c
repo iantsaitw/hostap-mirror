@@ -5247,6 +5247,42 @@ void ieee80211_ml_build_assoc_resp(struct hostapd_data *hapd,
 	p = hostapd_eid_mbo(hapd, p, buf + buflen - p);
 	p = hostapd_eid_wmm(hapd, p);
 
+#ifdef CONFIG_ENC_ASSOC
+	if (ap_sta_is_epp(sta)) {
+		struct hostapd_data *assoc_hapd;
+		struct sta_info *assoc_sta;
+		const u8 *rsne, *assoc_rsne, *pmkid_next = NULL;
+
+		assoc_sta = hostapd_ml_get_assoc_sta(hapd, sta, &assoc_hapd);
+		if (assoc_sta && hapd != assoc_hapd) {
+			rsne = hostapd_wpa_ie(hapd, WLAN_EID_RSN);
+			assoc_rsne = hostapd_wpa_ie(assoc_hapd, WLAN_EID_RSN);
+			if (rsne && assoc_rsne &&
+			    (rsne[1] != assoc_rsne[1] ||
+			     os_memcmp(rsne, assoc_rsne, 2 + rsne[1]) != 0)) {
+				size_t rsn_ie_len = 2 + rsne[1];
+
+				os_memcpy(p, rsne, rsn_ie_len);
+#ifdef CONFIG_PMKSA_PRIVACY
+				if (wpa_auth_ap_sta_support_pmkid_privacy(
+					    assoc_sta->wpa_sm)) {
+					switch (assoc_sta->auth_alg) {
+					case WLAN_AUTH_EPPKE:
+						pmkid_next = assoc_sta->epp_pmkid_next;
+						break;
+					}
+				}
+#endif /* CONFIG_PMKSA_PRIVACY */
+
+				if (pmkid_next)
+					wpa_insert_pmkid(p, &rsn_ie_len,
+							 pmkid_next, true);
+				p += rsn_ie_len;
+			}
+		}
+	}
+#endif /* CONFIG_ENC_ASSOC */
+
 	if (hapd->conf->assocresp_elements &&
 	    (size_t) (buf + buflen - p) >=
 	    wpabuf_len(hapd->conf->assocresp_elements)) {
