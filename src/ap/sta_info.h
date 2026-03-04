@@ -105,6 +105,8 @@ struct sta_info {
 #ifdef CONFIG_PMKSA_PRIVACY
 	u8 snonce[NONCE_LEN]; /* Snonce to compute next PMKID if
 			       * PMKID caching Privacy is on */
+	u8 anonce[NONCE_LEN]; /* Anonce to compute next PMKID if
+			       * PMKID caching Privacy is on */
 	u8 epp_pmkid_next[PMKID_LEN];
 #endif /* CONFIG_PMKSA_PRIVACY */
 
