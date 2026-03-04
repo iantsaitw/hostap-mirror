@@ -199,6 +199,17 @@ void pasn_set_custom_pmkid(struct pasn_data *pasn, const u8 *pmkid)
 	pasn->custom_pmkid_valid = true;
 }
 
+void pasn_set_rnd_pmkid(struct pasn_data *pasn, const u8 *pmkid)
+{
+	if (!pasn || !pmkid)
+		return;
+
+	wpa_printf(MSG_DEBUG, "PASN: pasn_set_rnd_pmkid");
+
+	os_memcpy(pasn->pmkid_rnd, pmkid, PMKID_LEN);
+	pasn->pmkid_rnd_initial_en = true;
+}
+
 
 int pasn_set_extra_ies(struct pasn_data *pasn, const u8 *extra_ies,
 		       size_t extra_ies_len)

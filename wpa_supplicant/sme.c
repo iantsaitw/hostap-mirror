@@ -703,6 +703,15 @@ static void wpas_eppke_initialize(struct wpa_supplicant *wpa_s,
 	if (ssid->pmksa_privacy)
 		capab |= BIT(WLAN_RSNX_CAPAB_PMKSA_CACHING_PRIVACY);
 #endif /* CONFIG_PMKSA_PRIVACY */
+
+	wpa_printf(MSG_DEBUG, "PASN: pmkid_rnd_initial %u", ssid->pmkid_rnd_initial);
+
+	if (ssid->pmkid_rnd_initial) {
+		u8 pmkid[PMKID_LEN];
+		os_get_random(pmkid, PMKID_LEN);
+		pasn_set_rnd_pmkid(pasn, pmkid);
+	}
+
 	pasn->derive_kek = true;
 
 #ifdef CONFIG_SAE

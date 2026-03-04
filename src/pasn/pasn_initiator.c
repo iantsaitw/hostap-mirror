@@ -680,6 +680,11 @@ struct wpabuf * wpas_pasn_build_auth_1(struct pasn_data *pasn,
 			wrapped_data_buf = wpas_pasn_get_wrapped_data(pasn);
 	}
 
+	if (pasn->pmkid_rnd_initial_en) {
+		wpa_printf(MSG_DEBUG, "PASN: config rnd pmksa");
+		pmkid = pasn->pmkid_rnd;
+	}
+
 	if (wpa_pasn_add_rsne(buf, pmkid, pasn->akmp, pasn->cipher,
 			      pasn->auth_alg == WLAN_AUTH_EPPKE,
 			      pasn->group_cipher, pasn->group_mgmt_cipher) < 0)
