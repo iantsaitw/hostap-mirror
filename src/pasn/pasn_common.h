@@ -68,6 +68,9 @@ struct pasn_data {
 	u8 *rsnxe_ie;
 	bool custom_pmkid_valid;
 	u8 custom_pmkid[PMKID_LEN];
+	
+	bool pmkid_rnd_initial_en;
+	u8 pmkid_rnd[PMKID_LEN];
 
 	/* Counter from the decrypted password identifier blob (set when
 	 * get_pt_for_pw_id() resolves an encrypted identifier) */
@@ -318,6 +321,7 @@ void pasn_set_rsne(struct pasn_data *pasn, const u8 *rsne);
 void pasn_set_rsnxe_caps(struct pasn_data *pasn, u64 rsnxe_capab);
 void pasn_set_rsnxe_ie(struct pasn_data *pasn, const u8 *rsnxe_ie);
 void pasn_set_custom_pmkid(struct pasn_data *pasn, const u8 *pmkid);
+void pasn_set_rnd_pmkid(struct pasn_data *pasn, const u8 *pmkid);
 int pasn_set_extra_ies(struct pasn_data *pasn, const u8 *extra_ies,
 		       size_t extra_ies_len);
 struct rsn_pmksa_cache * pasn_responder_pmksa_cache_init(void);
