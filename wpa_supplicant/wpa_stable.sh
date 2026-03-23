@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # --- Configuration ---
-INTERFACE="wlp3s0" 
+INTERFACE="wlp174s0" 
 SUPPLICANT="./wpa_supplicant"
 LOG_FILE="wpa_stable.log"
 OLD_LOG="wpa_stable_old.log"
