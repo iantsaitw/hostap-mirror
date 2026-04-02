@@ -9102,13 +9102,8 @@ bool wpas_rsn_overriding(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid)
 {
 	enum wpas_rsn_overriding rsno;
 
-	if (ssid) {
-		wpa_printf(MSG_DEBUG, "RSN overriding: ssid->rsn_overriding=%d",
-		   ssid->rsn_overriding);
-	} else {
-		wpa_printf(MSG_DEBUG, "RSN overriding: ssid=NULL, conf->rsn_overriding=%d",
-			   wpa_s->conf->rsn_overriding);
-	}
+	wpa_dbg(wpa_s, MSG_DEBUG, "[rtk_dbg] RSN overriding: ssid->rsn_overriding=%d conf->rsn_overriding=%d ",
+		  ssid ? ssid->rsn_overriding : -1, wpa_s->conf->rsn_overriding);
 
 	if (ssid && ssid->rsn_overriding != RSN_OVERRIDING_NOT_SET)
 		rsno = ssid->rsn_overriding;

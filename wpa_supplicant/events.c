@@ -678,6 +678,8 @@ static int wpa_supplicant_ssid_bss_match(struct wpa_supplicant *wpa_s,
 #endif /* CONFIG_WEP */
 	bool is_6ghz_bss = is_6ghz_freq(bss->freq);
 
+	wpa_printf(MSG_DEBUG, "SSID: %s", wpa_ssid_txt(ssid->ssid, ssid->ssid_len));
+
 	ret = wpas_wps_ssid_bss_match(wpa_s, ssid, bss);
 	if (ret >= 0)
 		return ret;
@@ -784,6 +786,12 @@ static int wpa_supplicant_ssid_bss_match(struct wpa_supplicant *wpa_s,
 					 WPA_KEY_MGMT_FT_PSK |
 					 WPA_KEY_MGMT_PSK_SHA256);
 		}
+
+		wpa_dbg(wpa_s, MSG_DEBUG, "[rtk_dbg] RSN IE proto=0x%x pairwise=0x%x "
+			"group=0x%x key_mgmt=0x%x (ssid->key_mgmt=0x%x) "
+			"capabilities=0x%x",
+			ie.proto, ie.pairwise_cipher, ie.group_cipher,
+			ie.key_mgmt, ssid->key_mgmt, ie.capabilities);
 
 		if (!(ie.key_mgmt & ssid->key_mgmt)) {
 			if (debug_print)
