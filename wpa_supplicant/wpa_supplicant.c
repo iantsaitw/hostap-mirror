@@ -9101,26 +9101,43 @@ static bool wpas_driver_rsn_override(struct wpa_supplicant *wpa_s)
 bool wpas_rsn_overriding(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid)
 {
 	enum wpas_rsn_overriding rsno;
+	bool rsn_overriding = true;
 
-	wpa_dbg(wpa_s, MSG_DEBUG, "[rtk_dbg] RSN overriding: ssid->rsn_overriding=%d conf->rsn_overriding=%d ",
-		  ssid ? ssid->rsn_overriding : -1, wpa_s->conf->rsn_overriding);
-
-	if (ssid && ssid->rsn_overriding != RSN_OVERRIDING_NOT_SET)
+	if (ssid && ssid->rsn_overriding != RSN_OVERRIDING_NOT_SET) {
 		rsno = ssid->rsn_overriding;
-	else
+		if (ssid) {
+			wpa_dbg(wpa_s, MSG_DEBUG, "[rtk_dbg] RSN overriding: %d by ssid->rsn_overriding", ssid->rsn_overriding);
+		}
+	} else {
 		rsno = wpa_s->conf->rsn_overriding;
+		if (ssid) {
+			wpa_dbg(wpa_s, MSG_DEBUG, "[rtk_dbg] RSN overriding: %d by conf->rsn_overriding", wpa_s->conf->rsn_overriding);
+		}
+	}
 
-	if (rsno == RSN_OVERRIDING_DISABLED)
-		return false;
+	if (rsno == RSN_OVERRIDING_DISABLED) {
+		if (ssid) {
+			wpa_dbg(wpa_s, MSG_DEBUG, "[rtk_dbg] RSN overriding: disabled by config");
+		}
+		rsn_overriding = false;
+	}
 
-	if (rsno == RSN_OVERRIDING_ENABLED)
-		return true;
+	if (rsno == RSN_OVERRIDING_ENABLED) {
+		if (ssid) {
+			wpa_dbg(wpa_s, MSG_DEBUG, "[rtk_dbg] RSN overriding: enabled by config");
+		}
+		rsn_overriding = true;
+	}
 
 	if (!(wpa_s->drv_flags & WPA_DRIVER_FLAGS_SME) ||
-	    wpas_driver_bss_selection(wpa_s))
-		return wpas_driver_rsn_override(wpa_s);
+	    wpas_driver_bss_selection(wpa_s)) {
+		rsn_overriding = wpas_driver_rsn_override(wpa_s);
+		if (ssid) {
+			wpa_dbg(wpa_s, MSG_DEBUG, "[rtk_dbg] RSN overriding: %d by driver flags", rsn_overriding);
+		}
+	}
 
-	return true;
+	return rsn_overriding;
 }
 
 

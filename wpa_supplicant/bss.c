@@ -2355,23 +2355,23 @@ static bool wpa_bss_supported_rsne(struct wpa_supplicant *wpa_s,
 	struct wpa_ie_data data;
 
 	if (wpa_parse_wpa_ie_rsn(ie, 2 + ie[1], &data) < 0) {
-		wpa_printf(MSG_DEBUG, "[rtk_dbg] %s: Failed to parse RSN IE", __func__);
+		wpa_dbg(wpa_s, MSG_DEBUG, "[rtk_dbg] %s: Failed to parse RSN IE", __func__);
 		return false;
 	}
 
 	/* Check that there is a supported AKM and pairwise cipher based on
 	 * overall capabilities */
 	if (!data.pairwise_cipher || !data.key_mgmt) {
-		wpa_printf(MSG_DEBUG, "[rtk_dbg] %s: No supported pairwise cipher or key management", __func__);
+		wpa_dbg(wpa_s, MSG_DEBUG, "[rtk_dbg] %s: No supported pairwise cipher or key management", __func__);
 		return false;
 	} else {
-		wpa_printf(MSG_DEBUG, "[rtk_dbg] %s: RSN IE pairwise_cipher=0x%x key_mgmt=0x%x", __func__, data.pairwise_cipher, data.key_mgmt);
+		wpa_dbg(wpa_s, MSG_DEBUG, "[rtk_dbg] %s: RSN IE pairwise_cipher=0x%x key_mgmt=0x%x", __func__, data.pairwise_cipher, data.key_mgmt);
 	}
 
 	if (wpa_s->drv_capa_known) {
 		if (!wpa_bss_supported_cipher(wpa_s, data.pairwise_cipher) ||
 		    !wpa_bss_supported_key_mgmt(wpa_s, data.key_mgmt)) {
-			wpa_printf(MSG_DEBUG, "[rtk_dbg] %s: RSN IE pairwise cipher or key management not supported by driver", __func__);
+			wpa_dbg(wpa_s, MSG_DEBUG, "[rtk_dbg] %s: RSN IE pairwise cipher or key management not supported by driver", __func__);
 			return false;
 		}
 	}
@@ -2380,16 +2380,16 @@ static bool wpa_bss_supported_rsne(struct wpa_supplicant *wpa_s,
 		/* Check that there is a supported AKM and pairwise cipher
 		 * based on the specific network profile. */
 		if ((ssid->pairwise_cipher & data.pairwise_cipher) == 0) {
-			wpa_printf(MSG_DEBUG, "[rtk_dbg] %s: ssid->pairwise_cipher=0x%x data.pairwise_cipher=0x%x", __func__, ssid->pairwise_cipher, data.pairwise_cipher);
+			wpa_dbg(wpa_s, MSG_DEBUG, "[rtk_dbg] %s: ssid->pairwise_cipher=0x%x data.pairwise_cipher=0x%x", __func__, ssid->pairwise_cipher, data.pairwise_cipher);
 			return false;
 		}
 		if ((ssid->key_mgmt & data.key_mgmt) == 0) {
-			wpa_printf(MSG_DEBUG, "[rtk_dbg] %s: ssid->key_mgmt=0x%x data.key_mgmt=0x%x", __func__, ssid->key_mgmt, data.key_mgmt);
+			wpa_dbg(wpa_s, MSG_DEBUG, "[rtk_dbg] %s: ssid->key_mgmt=0x%x data.key_mgmt=0x%x", __func__, ssid->key_mgmt, data.key_mgmt);
 			return false;
 		}
 	}
 
-	wpa_printf(MSG_DEBUG, "[rtk_dbg] %s: RSN IE matched supported configuration", __func__);
+	wpa_dbg(wpa_s, MSG_DEBUG, "[rtk_dbg] %s: RSN IE matched supported configuration", __func__);
 
 	return true;
 }
@@ -2408,46 +2408,55 @@ const u8 * wpa_bss_get_rsne(struct wpa_supplicant *wpa_s,
 		if (!ssid)
 			ssid = wpa_s->current_ssid;
 
-		wpa_printf(MSG_DEBUG, "[rtk_dbg] %s: SSID: %s", __func__, wpa_ssid_txt(ssid->ssid, ssid->ssid_len));
+		/*wpa_printf(MSG_DEBUG, "[rtk_dbg] %s: SSID: %s", __func__, wpa_ssid_txt(ssid->ssid, ssid->ssid_len));*/
 
 		/* MLO cases for RSN overriding are required to use RSNE
 		 * Override 2 element and RSNXE Override element together. */
 		ie = wpa_bss_get_vendor_ie(bss, RSNE_OVERRIDE_2_IE_VENDOR_TYPE);
 		if (ie) {
-			wpa_printf(MSG_DEBUG, "[rtk_dbg] %s: Found RSNE Override 2 element for MLO", __func__);
+			wpa_dbg(wpa_s, MSG_DEBUG, "[rtk_dbg] %s: Found RSNE Override 2 element", __func__);
 		}
 		if (mlo && ie &&
 		    !wpa_bss_get_vendor_ie(bss,
 					   RSNXE_OVERRIDE_IE_VENDOR_TYPE)) {
-			wpa_printf(MSG_DEBUG, "BSS " MACSTR
+			wpa_dbg(wpa_s, MSG_DEBUG, "BSS " MACSTR
 				   " advertises RSNE Override 2 element without RSNXE Override element - ignore RSNE Override 2 element for MLO",
 				   MAC2STR(bss->bssid));
 		} else if (ie) {
 			if (wpa_bss_supported_rsne(wpa_s, ssid, ie)) {
-				wpa_printf(MSG_DEBUG, "[rtk_dbg] %s: Using RSNE Override 2 element for MLO", __func__);
+				wpa_dbg(wpa_s, MSG_DEBUG, "[rtk_dbg] %s: Using RSNE Override 2 element", __func__);
 				return ie;
 			} else {
-				wpa_printf(MSG_DEBUG, "[rtk_dbg] %s: RSNE Override 2 element did not match supported configuration", __func__);
+				wpa_dbg(wpa_s, MSG_DEBUG, "[rtk_dbg] %s: RSNE Override 2 element did not match supported configuration", __func__);
 			}
 		}
 
 		if (!mlo) {
 			ie = wpa_bss_get_vendor_ie(
 				bss, RSNE_OVERRIDE_IE_VENDOR_TYPE);
+			if (ie) {
+				wpa_dbg(wpa_s, MSG_DEBUG, "[rtk_dbg] %s: Found RSNE Override", __func__);
+			}
 			if (ie && wpa_bss_supported_rsne(wpa_s, ssid, ie)) {
-				wpa_printf(MSG_DEBUG, "[rtk_dbg] %s: Using RSNE Override element for MLO", __func__);
+				wpa_dbg(wpa_s, MSG_DEBUG, "[rtk_dbg] %s: Using RSNE Override element", __func__);
 				return ie;
 			} else {
-				wpa_printf(MSG_DEBUG, "[rtk_dbg] %s: RSNE Override element did not match supported configuration", __func__);
+				if (ie) {
+					wpa_dbg(wpa_s, MSG_DEBUG, "[rtk_dbg] %s: RSNE Override element did not match supported configuration", __func__);
+				}
 			}
 		}
 	} else {
-		wpa_dbg(wpa_s, MSG_DEBUG,
-			  "[rtk_dbg] RSN: Not using RSN override since it is not enabled for this network");
+		if (ssid) {
+			wpa_dbg(wpa_s, MSG_DEBUG,
+				  "[rtk_dbg] RSN: Not using RSN override since it is not enabled for this network");
+		}
 	}
 #endif /* CONFIG_NO_WPA */
 
-	wpa_printf(MSG_DEBUG, "[rtk_dbg] %s: Using RSNE element for MLO", __func__);
+	if (ssid) {
+		wpa_dbg(wpa_s, MSG_DEBUG, "[rtk_dbg] %s: Using RSNE element", __func__);
+	}
 
 	return wpa_bss_get_ie(bss, WLAN_EID_RSN);
 }
@@ -2463,6 +2472,8 @@ const u8 * wpa_bss_get_rsnxe(struct wpa_supplicant *wpa_s,
 		ie = wpa_bss_get_vendor_ie(bss, RSNXE_OVERRIDE_IE_VENDOR_TYPE);
 		if (ie) {
 			const u8 *tmp;
+
+			wpa_dbg(wpa_s, MSG_DEBUG, "[rtk_dbg] %s: Found RSNXE Override element", __func__);
 
 			tmp = wpa_bss_get_rsne(wpa_s, bss, ssid, mlo);
 			if (!tmp || tmp[0] == WLAN_EID_RSN) {
