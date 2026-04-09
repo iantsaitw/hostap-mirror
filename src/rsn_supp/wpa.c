@@ -1250,6 +1250,8 @@ static int wpa_supplicant_install_ptk(struct wpa_sm *sm,
 	size_t ap_rsnxe_len;
 #endif /* CONFIG_PASN */
 
+	wpa_dbg(sm->ctx->msg_ctx, MSG_DEBUG, "[rtk_dbg] %s", __func__);
+
 	if (sm->ptk.installed ||
 	    (sm->ptk.installed_rx && (key_flag & KEY_FLAG_NEXT))) {
 		wpa_dbg(sm->ctx->msg_ctx, MSG_DEBUG,
