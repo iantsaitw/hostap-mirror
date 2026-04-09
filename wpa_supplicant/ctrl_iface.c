@@ -1050,6 +1050,12 @@ static int wpa_supplicant_ctrl_iface_get(struct wpa_supplicant *wpa_s,
 					WPA_NONCE_LEN);
 	} else if (os_strcasecmp(cmd, "last_tk_key_idx") == 0) {
 		res = os_snprintf(buf, buflen, "%d", wpa_s->last_tk_key_idx);
+	} else if (os_strcasecmp(cmd, "tk") == 0) {
+		if (wpa_s->last_tk_len == 0)
+			return -1;
+		res = wpa_snprintf_hex(buf, buflen, wpa_s->last_tk,
+				       wpa_s->last_tk_len);
+		return res;
 	} else if (os_strcasecmp(cmd, "mld_connect_bssid_pref") == 0) {
 		res = os_snprintf(buf, buflen, MACSTR, MAC2STR(wpa_s->conf->mld_connect_bssid_pref));
 #endif /* CONFIG_TESTING_OPTIONS */
