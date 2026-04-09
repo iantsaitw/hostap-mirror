@@ -562,6 +562,8 @@ static int wpa_supplicant_set_key(void *_wpa_s, int link_id, enum wpa_alg alg,
 	struct wpa_supplicant *wpa_s = _wpa_s;
 	int ret;
 
+	wpa_dbg(wpa_s, MSG_DEBUG, "[rtk_dbg] %s", __func__);
+
 	if (alg == WPA_ALG_TKIP && key_idx == 0 && key_len == 32) {
 		/* Clear the MIC error counter when setting a new PTK. */
 		wpa_s->mic_errors_seen = 0;
