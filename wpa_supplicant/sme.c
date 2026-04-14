@@ -1368,8 +1368,6 @@ static void sme_send_authentication(struct wpa_supplicant *wpa_s,
 	}
 #endif /* CONFIG_IEEE8021X_AUTH */
 
-	if (!start)
-		goto skip_setup;
 	if ((wpa_bss_get_vendor_ie(bss, WPA_IE_VENDOR_TYPE) ||
 	     wpa_bss_get_rsne(wpa_s, bss, ssid, false)) &&
 	    wpa_key_mgmt_wpa(ssid->key_mgmt)) {
@@ -1436,7 +1434,6 @@ static void sme_send_authentication(struct wpa_supplicant *wpa_s,
 		wpa_supplicant_set_non_wpa_policy(wpa_s, ssid);
 		wpa_s->sme.assoc_req_ie_len = 0;
 	}
-skip_setup:
 
 	/* In case the WPA vendor IE is used, it should be placed after all the
 	 * non-vendor IEs, as the lower layer expects the IEs to be ordered as
