@@ -929,6 +929,9 @@ void wpa_pasn_reset(struct pasn_data *pasn)
 	os_memset(pasn->ap_supported_groups, 0,
 		  sizeof(pasn->ap_supported_groups));
 	pasn->ap_supported_group_idx = 0;
+	os_memset(pasn->rejected_groups, 0,
+		  sizeof(pasn->rejected_groups));
+	pasn->rejected_group_idx = 0;
 #ifdef CONFIG_TESTING_OPTIONS
 	pasn->corrupt_mic = 0;
 #endif /* CONFIG_TESTING_OPTIONS */
