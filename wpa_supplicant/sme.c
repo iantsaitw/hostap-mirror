@@ -1222,7 +1222,7 @@ static void sme_send_authentication(struct wpa_supplicant *wpa_s,
 	int omit_rsnxe = 0;
 	unsigned int keys_to_clear = 0;
 
-	wpa_dbg(wpa_s, MSG_DEBUG, "[rtk_dbg] %s", __func__);
+	wpa_dbg(wpa_s, MSG_DEBUG, "[rtk_dbg] %s (start = %d)", __func__, start);
 
 	if (bss == NULL) {
 		wpa_msg(wpa_s, MSG_ERROR, "SME: No scan result available for "
@@ -1440,6 +1440,8 @@ static void sme_send_authentication(struct wpa_supplicant *wpa_s,
 				"key management and encryption suites");
 			wpas_connect_work_done(wpa_s);
 			return;
+		} else {
+			wpa_dbg(wpa_s, MSG_DEBUG, "[rtk_dbg] %s: set WPA key management and encryption suites successfully (assoc_req_ie_len = %ld)", __func__, wpa_s->sme.assoc_req_ie_len);
 		}
 	} else if ((ssid->key_mgmt & WPA_KEY_MGMT_IEEE8021X_NO_WPA) &&
 		   wpa_key_mgmt_wpa_ieee8021x(ssid->key_mgmt)) {
@@ -1476,6 +1478,8 @@ static void sme_send_authentication(struct wpa_supplicant *wpa_s,
 		wpa_supplicant_set_non_wpa_policy(wpa_s, ssid);
 		wpa_s->sme.assoc_req_ie_len = 0;
 	}
+
+	wpa_dbg(wpa_s, MSG_DEBUG, "[rtk_dbg] %s: assoc_req_ie_len = %ld (after skip)", __func__, wpa_s->sme.assoc_req_ie_len);
 
 	/* In case the WPA vendor IE is used, it should be placed after all the
 	 * non-vendor IEs, as the lower layer expects the IEs to be ordered as
