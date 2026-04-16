@@ -251,12 +251,16 @@ int wpas_pasn_get_group(struct wpa_supplicant *wpa_s,
 		if (!dragonfly_suitable_group(groups[i], 1))
 			continue;
 
-		if (!pasn)
+		if (!pasn) {
+			wpa_printf(MSG_DEBUG, "PASN: No PASN data - group %d is suitable",
+				   groups[i]);
 			return groups[i];
+		}
 
 		/* Skip groups already rejected in this session */
 		for (j = 0; j < pasn->rejected_group_idx; j++) {
 			if (groups[i] == pasn->rejected_groups[j]) {
+				wpa_printf(MSG_DEBUG, "PASN: Skipping rejected group %d", groups[i]);
 				rejected = true;
 				break;
 			}
@@ -269,6 +273,7 @@ int wpas_pasn_get_group(struct wpa_supplicant *wpa_s,
 			ap_supported = false;
 			for (j = 0; j < pasn->ap_supported_group_idx; j++) {
 				if (groups[i] == pasn->ap_supported_groups[j]) {
+					wpa_printf(MSG_DEBUG, "PASN: Group %d is supported by AP", groups[i]);
 					ap_supported = true;
 					break;
 				}
@@ -1201,8 +1206,13 @@ void wpas_pasn_auth_stop(struct wpa_supplicant *wpa_s)
 {
 	struct pasn_data *pasn = &wpa_s->pasn;
 
-	if (!wpa_s->pasn.ecdh)
+	if (!wpa_s->pasn.ecdh) {
+		wpa_printf(MSG_DEBUG, "PASN: pasn_auth_stop: No authentication in progress");
+#ifdef CONFIG_TESTING_OPTIONS
+		wpa_pasn_reset(pasn);
+#endif
 		return;
+	}
 
 	wpa_printf(MSG_DEBUG, "PASN: Stopping authentication");
 
