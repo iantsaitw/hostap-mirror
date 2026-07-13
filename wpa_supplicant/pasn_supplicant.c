@@ -1073,6 +1073,7 @@ static void wpas_pasn_auth_start_cb(struct wpa_radio_work *work, int deinit)
 	pasn->group_mgmt_cipher = awork->group_mgmt_cipher;
 	pasn->rsn_capab = awork->rsn_capab;
 	pasn_set_rsnxe_ie(pasn, awork->rsnxe_data);
+	wpa_dbg(wpa_s, MSG_DEBUG, "[rtk_dbg] %s: is_ml_peer = %d", __func__, awork->is_ml_peer);
 	pasn->is_ml_peer = awork->is_ml_peer;
 	/*
 	 * Set network_ctx so the PMKSA entry is stored with the correct
@@ -1125,8 +1126,8 @@ int wpas_pasn_auth_start(struct wpa_supplicant *wpa_s,
 	struct wpa_pasn_auth_work *awork;
 	struct wpa_bss *bss;
 
-	wpa_printf(MSG_DEBUG, "PASN: Start: " MACSTR " akmp=0x%x, cipher=0x%x",
-		   MAC2STR(peer_addr), akmp, cipher);
+	wpa_printf(MSG_DEBUG, "PASN: Start: " MACSTR " akmp=0x%x, cipher=0x%x, is_ml_peer=%d",
+		   MAC2STR(peer_addr), akmp, cipher, is_ml_peer);
 
 	/*
 	 * TODO: Consider modifying the offchannel logic to handle additional
@@ -1172,6 +1173,7 @@ int wpas_pasn_auth_start(struct wpa_supplicant *wpa_s,
 	awork->group_mgmt_cipher = group_mgmt_cipher;
 #ifdef CONFIG_ENC_ASSOC
 	awork->rsn_capab = rsn_capab;
+	wpa_dbg(wpa_s, MSG_DEBUG, "[rtk_dbg] %s: is_ml_peer = %d", __func__, is_ml_peer);
 	awork->is_ml_peer = is_ml_peer;
 
 	if (rsnxe_data) {

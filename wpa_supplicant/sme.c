@@ -1189,9 +1189,11 @@ static int wpas_eppke_initialize(struct wpa_supplicant *wpa_s,
 	os_memcpy(pasn->own_addr, wpa_s->own_addr, ETH_ALEN);
 	if ((wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_MLO) &&
 	    wpa_s->valid_links) {
+		wpa_dbg(wpa_s, MSG_DEBUG, "[rtk_dbg] %s: is_ml_peer = true", __func__);
 		pasn->is_ml_peer = true;
 		os_memcpy(pasn->peer_addr, wpa_s->ap_mld_addr, ETH_ALEN);
 	} else {
+		pasn->is_ml_peer = false;
 		os_memcpy(pasn->peer_addr, bss->bssid, ETH_ALEN);
 	}
 	os_memcpy(pasn->bssid, bss->bssid, ETH_ALEN);
@@ -2382,9 +2384,11 @@ static int sme_handle_eppke_external_auth_start(struct wpa_supplicant *wpa_s,
 	wpa_s->sme.ext_auth_alg = ext_auth->auth_alg;
 
 	if (ext_auth->mld_addr) {
+		wpa_dbg(wpa_s, MSG_DEBUG, "[rtk_dbg] %s: is_ml_peer = true", __func__);
 		is_ml_peer = true;
 		os_memcpy(peer_addr, ext_auth->mld_addr, ETH_ALEN);
 	} else {
+		wpa_dbg(wpa_s, MSG_DEBUG, "[rtk_dbg] %s: is_ml_peer = false", __func__);
 		is_ml_peer = false;
 		os_memcpy(peer_addr, ext_auth->bssid, ETH_ALEN);
 	}

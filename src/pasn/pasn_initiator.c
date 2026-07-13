@@ -892,6 +892,7 @@ void wpa_pasn_reset(struct pasn_data *pasn)
 	pasn->trans_seq = 0;
 	pasn->pmk_len = 0;
 	pasn->using_pmksa = false;
+	pasn->is_ml_peer = false;
 
 	forced_memzero(pasn->pmk, sizeof(pasn->pmk));
 	forced_memzero(&pasn->ptk, sizeof(pasn->ptk));
