@@ -506,7 +506,10 @@ static int wpa_supplicant_ctrl_iface_set(struct wpa_supplicant *wpa_s,
 	*value++ = '\0';
 
 	wpa_printf(MSG_DEBUG, "CTRL_IFACE SET '%s'='%s'", cmd, value);
-	if (os_strcasecmp(cmd, "EAPOL::heldPeriod") == 0) {
+	if (os_strcasecmp(cmd, "ml_disable") == 0) {
+		wpa_s->drv_flags2 &= ~WPA_DRIVER_FLAGS2_MLO;
+		wpa_dbg(wpa_s, MSG_DEBUG, "[rtk_dbg] %s: disable MLO", __func__);
+	} else if (os_strcasecmp(cmd, "EAPOL::heldPeriod") == 0) {
 		eapol_sm_configure(wpa_s->eapol,
 				   atoi(value), -1, -1, -1);
 	} else if (os_strcasecmp(cmd, "EAPOL::authPeriod") == 0) {

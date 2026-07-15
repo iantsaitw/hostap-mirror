@@ -7940,6 +7940,8 @@ static int wpa_supplicant_init_iface(struct wpa_supplicant *wpa_s,
 		wpa_s->drv_capa_known = 1;
 		wpa_s->drv_flags = capa.flags;
 		wpa_s->drv_flags2 = capa.flags2;
+		wpa_dbg(wpa_s, MSG_DEBUG, "[rtk_dbg] %s: wpa_s->drv_flags = 0x%lx", __func__, wpa_s->drv_flags);
+		wpa_dbg(wpa_s, MSG_DEBUG, "[rtk_dbg] %s: wpa_s->drv_flags2 = 0x%lx", __func__, wpa_s->drv_flags2);
 		wpa_s->drv_enc = capa.enc;
 		wpa_s->drv_key_mgmt = capa.key_mgmt;
 		wpa_s->drv_rrm_flags = capa.rrm_flags;
